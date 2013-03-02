@@ -1,0 +1,7 @@
+# Editor Files
+*~
+\#*\#
+
+# Build Output
+*.o
+*.hex
