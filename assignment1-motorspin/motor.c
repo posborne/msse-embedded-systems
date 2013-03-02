@@ -83,6 +83,8 @@ static void motor_readState()
 static void motor_drive() {
   if (g_motor_state.enabled) {
     set_motors(0, g_motor_state.direction * MOTOR_SPEED);
+  } else {
+    set_motors(0, 0);
   }
 }
 
@@ -102,7 +104,6 @@ static void button_readState() {
 	g_motor_state.enabled = false;
 	g_motor_state.number_transitions = 0;
 	g_motor_state.direction = DIRECTION_FORWARD;
-	set_motors(0, 0);
       } else {
 	g_motor_state.enabled = true;
       }
