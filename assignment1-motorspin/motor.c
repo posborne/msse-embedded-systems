@@ -3,16 +3,25 @@
  */
 #include <pololu/orangutan.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 
+/* something medium speed */
 #define MOTOR_SPEED                  (100)
+/* based on my count */
 #define NUMBER_DARK_REGIONS          (32)
-#define NUMBER_TRANSTIONS_ROTATION   (NUMBER_DARK_REGIONS * 2)
+/* will enter and exit every dark region once per revolution */
+#define NUMBER_TRANSTIONS_REVOLUTION (NUMBER_DARK_REGIONS * 2)
 
 typedef enum {
   DIRECTION_REVERSE = -1,
   DIRECTION_FORWARD = 1
-} direction_t;
+} direction_e;
+
+typedef enum {
+  BUTTON_STATE_PRESSED,
+  BUTTON_STATE_RELEASED
+} button_state_e;
 
 typedef struct {
   /* the last d0 reading */
@@ -22,11 +31,18 @@ typedef struct {
   /* the number of transitions (1 -> 0 or 0 -> 1) */
   uint8_t number_transitions;
   /* direction (forward/revrese) for the motor */
-  direction_t direction;
+  direction_e direction;
+  /* is the motor function enabled? */
+  bool enabled;
 } motor_state_t;
+
+typedef struct {
+  button_state_e state;
+} button_state_t;
 
 /* Globals */
 static motor_state_t g_motor_state;
+static button_state_t g_middle_button;
 static int g_tick;
 
 /*
@@ -43,6 +59,7 @@ static void motor_init()
   g_motor_state.d0_value = is_digital_input_high(IO_D0) ? 1 : 0;
   g_motor_state.d1_value = is_digital_input_high(IO_D1) ? 1 : 0;
   g_motor_state.direction = DIRECTION_FORWARD;
+  g_motor_state.enabled = true;
 }
 
 static void motor_readState()
@@ -50,10 +67,10 @@ static void motor_readState()
   uint8_t new_d0_value, new_d1_value;
   new_d0_value = is_digital_input_high(IO_D0) ? 1 : 0;
   new_d1_value = is_digital_input_high(IO_D1) ? 1 : 0;
-  
+
   /* check for transitions... for now just look at D0 */
-  if (new_d0_value != g_motor_state.d0_value) {
-    if (++g_motor_state.number_transitions > (2 * NUMBER_TRANSTIONS_ROTATION)) {
+  if (new_d1_value != g_motor_state.d1_value) {
+    if (++g_motor_state.number_transitions > (2 * NUMBER_TRANSTIONS_REVOLUTION)) {
       g_motor_state.number_transitions = 0;
       g_motor_state.direction = g_motor_state.direction * -1; // invert
     }
@@ -64,16 +81,37 @@ static void motor_readState()
 }
 
 static void motor_drive() {
-  set_motors(0, g_motor_state.direction * MOTOR_SPEED);  
+  if (g_motor_state.enabled) {
+    set_motors(0, g_motor_state.direction * MOTOR_SPEED);
+  }
 }
 
 /*
  * BUTTON FUNCTIONS
  */
 static void button_init() {
+  g_middle_button.state = BUTTON_STATE_RELEASED;
 }
 
 static void button_readState() {
+  switch (g_middle_button.state) {
+  case BUTTON_STATE_RELEASED:
+    if (get_single_debounced_button_press(MIDDLE_BUTTON)) {
+      g_middle_button.state = BUTTON_STATE_PRESSED;
+      if (g_motor_state.enabled) {
+	g_motor_state.enabled = false;
+	g_motor_state.number_transitions = 0;
+	g_motor_state.direction = DIRECTION_FORWARD;
+	set_motors(0, 0);
+      } else {
+	g_motor_state.enabled = true;
+      }
+    }
+    break;
+  case BUTTON_STATE_PRESSED:
+    g_middle_button.state = BUTTON_STATE_RELEASED;
+    break;
+  }
 }
 
 
