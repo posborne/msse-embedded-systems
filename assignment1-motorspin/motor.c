@@ -1,21 +1,56 @@
 /*
- * 
+ * SENG5831: Embedded Assignment 1
+ * -------------------------------
+ * Write a program using the Pololu library functions that does this:
+ * while(not_button_pushed) {
+ *   move motor 2 rotations at medium speed; // measure rotation using encoder
+ *   reverse direction;
+ * }
+ *
+ *
+ * Implementation Notes:
+ * ---------------------
+ * There are some extra featres in here that make use of the buttons
+ * on the board:
+ * 1) Middle button will pause/unpause the motor.  The encoder count
+ *    will be reset on pause  (useful for measuring revolutions).
+ * 2) Top/Bottom buttons will increase/decrease motor speed
+ *    respectively.  This feature is available when paused.
+ * 3) State information is displayed to the LCD if attached.
+ *
+ * Hardware Configuration
+ * ----------------------
+ * This program assumes one is using the pololu dev board with the
+ * motor attached to motor 2 and the encoder attached to D0, D1.
+ *
+ * License
+ * -------
+ * Copyright (c) 2013 Paul Osborne <osbpau@gmail.com>
+ *
+ * This file is licensed under the MIT License as specified in
+ * LICENSE.txt
  */
 #include <pololu/orangutan.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 
-/* something medium speed */
+/*
+ * CONSTANTS
+ */
 #define DEFAULT_MOTOR_SPEED          (100)
-/* based on my count */
 #define NUMBER_DARK_REGIONS          (32)
-/* will enter and exit every dark region once per revolution */
 #define NUMBER_TRANSTIONS_REVOLUTION (NUMBER_DARK_REGIONS * 2)
 
+/*
+ * MACROS
+ */
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a > b ? a : b)
 
+/*
+ * Type Definitions
+ */
 typedef enum {
   DIRECTION_REVERSE = -1,
   DIRECTION_FORWARD = 1
@@ -27,12 +62,9 @@ typedef enum {
 } button_state_e;
 
 typedef struct {
-  /* direction (forward/revrese) for the motor */
-  direction_e direction;
-  /* is the motor function enabled? */
-  bool enabled;
-  /* speed to drive the motor (with direction) */
-  uint8_t speed;
+  direction_e direction;  /* direction (forward/revrese) for the motor */
+  bool enabled;  /* is the motor function enabled? */
+  uint8_t speed;  /* speed to drive the motor (with direction) */
 } motor_state_t;
 
 typedef struct {
