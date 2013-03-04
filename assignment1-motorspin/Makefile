@@ -30,3 +30,7 @@ clean:
 
 program: $(TARGET).hex
 	$(AVRDUDE) -p $(AVRDUDE_DEVICE) -c avrisp2 -P $(PORT) -U flash:w:$(TARGET).hex
+
+.PHONY: release
+release:
+	tar -czvf seng5831-embedded-assignment1-`date +%d_%m_%y`.tar.gz Makefile *.c *.h
