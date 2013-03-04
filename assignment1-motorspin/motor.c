@@ -31,9 +31,11 @@
  * LICENSE.txt
  */
 #include <pololu/orangutan.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "log.h"
 
 /*
  * CONSTANTS
@@ -45,8 +47,8 @@
 /*
  * MACROS
  */
-#define MIN(a, b) (a < b ? a : b)
-#define MAX(a, b) (a > b ? a : b)
+#define MIN(a, b)     (a < b ? a : b)
+#define MAX(a, b)     (a > b ? a : b)
 
 /*
  * Type Definitions
@@ -98,9 +100,11 @@ static void motor_serviceEncoders()
   /* check for transitions... for now just look at D0 */
   int encoder_count = encoders_get_counts_m2();
   if (encoder_count > (2 * NUMBER_TRANSTIONS_REVOLUTION)) {
+    LOG(LVL_INFO, "motor: fwd -> reverse");
     g_motor_state.direction = g_motor_state.direction * -1; // invert
     encoders_get_counts_and_reset_m2();
   } else if (encoder_count < (-2 * NUMBER_TRANSTIONS_REVOLUTION)) {
+    LOG(LVL_INFO, "motor: reverse -> fwd");
     g_motor_state.direction = g_motor_state.direction * -1; // invert
     encoders_get_counts_and_reset_m2();
   }
@@ -218,7 +222,10 @@ int main()
 {
   motor_init();
   button_init();
+  log_init();
   g_tick = 0;
+  LOG(LVL_INFO, "------------------------");
+  LOG(LVL_INFO, "Starting application");
   while(1)
   {
     g_tick++; /* note: will roll over */
@@ -226,5 +233,6 @@ int main()
     motor_drive();
     button_readState();
     print_service();
+    log_service();
   }
 }

@@ -15,7 +15,7 @@ PORT ?= /dev/ttyACM0
 AVRDUDE=avrdude
 
 TARGET=motor
-OBJECT_FILES=$(TARGET).o
+OBJECT_FILES=$(TARGET).o log.o
 
 all: $(TARGET).hex
 
