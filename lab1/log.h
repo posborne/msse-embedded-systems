@@ -3,10 +3,11 @@
 #include <stdint.h>
 
 #ifndef LOG_DISABLE_LOGGING
-#define LOG(lvl, msg) (log_message(lvl, msg))
+#define LOG(lvl, fmt, args...) (log_message(lvl, fmt, ##args))
 #else
 #define LOG(lvl, msg) ()
 #endif
+#define printf(args...) (LOG(LVL_DEBUG, ##args))
 
 #ifndef LOG_BUFFER_SIZE
 #define LOG_BUFFER_SIZE (256)
@@ -27,6 +28,6 @@ typedef enum {
 
 void log_init();
 void log_service();
-void log_message(log_level_e lvl, char *msg);
+void log_message(log_level_e lvl, char *fmt, ...);
 
 #endif
