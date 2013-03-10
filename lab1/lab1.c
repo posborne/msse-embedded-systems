@@ -80,6 +80,7 @@
 #include <stdint.h>
 #include "leds.h"
 #include "timers.h"
+#include "log.h"
 
 static led_state_t g_led_state;
 static timers_state_t g_timers_state;
@@ -88,16 +89,21 @@ static timers_state_t g_timers_state;
  * Main Loop
  */
 int main() {
-  int i = 0;
-  timers_init(&g_timers_state);
-  leds_init(&g_led_state);
-  while (1) {
-    i++;
-    if (i % 1000 == 0) {
-      char buf[128];
-      clear();
-      sprintf(buf, "r: %lu", g_led_state.red_toggles);
-      print(buf);
-    }
-  }
+	uint16_t i = 0;
+	timers_init(&g_timers_state);
+	leds_init(&g_led_state);
+	log_init();
+	while (1) {
+		i++;
+		log_service();
+		if (i % 1000 == 0) {
+			char buf[128];
+			clear();
+			sprintf(buf, "r: %lu", g_led_state.red_toggles);
+			print(buf);
+		}
+		if (i % 10000 == 0) {
+			LOG(LVL_DEBUG, "i: %u, r: %u", i, g_led_state.red_toggles);
+		}
+	}
 }

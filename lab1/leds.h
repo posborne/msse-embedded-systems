@@ -4,6 +4,11 @@
 #include <avr/io.h>
 #include <stdint.h>
 
+/* keep tools happy, worried about undefined symbols */
+#define RED    ()
+#define GREEN  ()
+#define YELLOW ()
+
 typedef struct {
   /* toggle counts */
   volatile uint32_t red_toggles;
@@ -17,7 +22,7 @@ typedef struct {
 } led_state_t;
 
 // define the data direction registers
-#define DD_REG_RED	  (DDRD)
+#define DD_REG_RED	      (DDRD)
 #define DD_REG_YELLOW     (DDRD)
 #define DD_REG_GREEN      (DDRD)
 
