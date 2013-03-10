@@ -62,7 +62,10 @@
  *
  * Hardware Configuration
  * ----------------------
- * 
+ * As far as external hardware goes, the following outputs will be used:
+ * - Yellow Led: IO_D0
+ * - Red Led: On Board, IO_D1
+ * - Green Led: On Board, IO_
  *
  *
  *
@@ -76,19 +79,40 @@
 #include <pololu/orangutan.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
-static int g_var = 0;
+
+
+static uint16_t g_var = 0;
 static int led_state = 0;
+
+static void led_init()
+{
+  YELLOW_LED_DRIVE |= (YELLOW_LED_MASK);  // set output
+}
+
+static void yellow_led(int state)
+{
+  if (state) {
+    YELLOW_LED_PORT |= (YELLOW_LED_MASK);
+  } else {
+    YELLOW_LED_PORT &= ~(YELLOW_LED_MASK);
+  }
+}
 
 ISR(TIMER0_COMPA_vect) {
   g_var++;
-  if (g_var % 100 == 0) {
+  if (g_var % 1000 == 0) {
     if (led_state) {
       led_state = 0;
-      red_led(0);
+      // red_led(0);
+      green_led(0);
+      yellow_led(1);
     } else {
       led_state = 1;
-      red_led(1);
+      // red_led(1);
+      green_led(1);
+      yellow_led(0);
     }
   }
 }
@@ -98,7 +122,7 @@ static void timers_init()
   /* setup clock divider */
   TCCR0A |= (1 << WGM01);  // Mode = CTC
   TCCR0B |= (1 << CS02 | 1 << CS00);  // Clock Divider, 1024
-  
+
   /* setup top to be 20 */
   OCR0A = 20;
 
@@ -107,7 +131,6 @@ static void timers_init()
 
   /* Unmkask interrupt for output compare match A */
   TIMSK0 |= (1 << OCIE0A);
-
 }
 
 
@@ -116,13 +139,14 @@ static void timers_init()
  */
 int main() {
   int i = 0;
+  led_init();
   timers_init();
   while (1) {
     i++;
     if (i % 1000 == 0) {
       char buf[128];
       clear();
-      sprintf(buf, "count: %d", g_var);
+      sprintf(buf, "count: %u", g_var);
       print(buf);
     }
   }
