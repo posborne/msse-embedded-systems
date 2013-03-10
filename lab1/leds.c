@@ -1,54 +1,43 @@
-#include "LEDs.h"
-#include "timer.h"
-#include "usart.h"
-
 #include <avr/io.h>
 #include <stdio.h>
+#include "leds.h"
+#include "timers.h"
 
-// RED LED is toggled in a cyclic executive defined in lab1.c
-// Yellow and Green are toggled in interrupt handlers defined below.
-// The interrupts are initialized in the timers.c file.
-// Yellow is on Timer 3. Green is on Timer 1.
+static led_state_t * g_led_state;
 
-// GLOBALS
-extern uint32_t G_yellow_ticks;
+void leds_init(led_state_t * led_state) { 
+  int i;
 
-extern uint16_t G_red_period;
-extern uint16_t G_green_period;
-extern uint16_t G_yellow_period;
+  // Store reference to led state strcture and
+  // initialize the structure
+  g_led_state = led_state;
+  g_led_state->green_toggles  = 0;
+  g_led_state->red_toggles    = 0;
+  g_led_state->yellow_toggles = 0;
 
-extern uint32_t G_red_toggles;
-extern uint32_t G_green_toggles;
-extern uint32_t G_yellow_toggles;
-
-void init_LEDs() {
-
-	int i;
-
-	// Clear all data direction ports
->
-
-	// Configure data direction as output
->
-
-	// Turn LEDs on to make sure they are working
->
-
-	for (i=0;i<200;i++)
-		WAIT_10MS;
-
-	// Start all LEDs off
->
-
-	// clear toggle counters
-	G_green_toggles = 0;
-	G_red_toggles = 0;
-	G_yellow_toggles = 0;
-	
+  // Configure data direction as output for each LED
+  DD_REG_RED    |= BIT_RED;
+  DD_REG_YELLOW |= BIT_YELLOW;
+  DD_REG_GREEN  |= BIT_GREEN;
+  
+  // Turn LEDs on to make sure they are working
+  LED_ON(GREEN);
+  LED_ON(RED);
+  LED_ON(YELLOW);
+  
+  // wait 2 seconds
+  for (i=0; i<200; i++) {
+    WAIT_10MS
+  }
+  
+  // Start all LEDs off
+  LED_OFF(GREEN);
+  LED_OFF(RED);
+  LED_OFF(YELLOW);
 }
 
 /*
-void set_toggle(char color, int ms) {
+void leds_set_toggle(char color, int ms) {
 
 		// check toggle ms is positive and multiple of 100
 		if (ms<0) {

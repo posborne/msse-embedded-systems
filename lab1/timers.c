@@ -1,54 +1,36 @@
-#include "timer.h"
-#include "usart.h"
-#include "LEDs.h"
+#include "timers.h"
+#include "leds.h"
 
 #include <avr/interrupt.h>
 
-// GLOBALS
-extern uint32_t G_green_ticks;
-extern uint32_t G_yellow_ticks;
-extern uint32_t G_ms_ticks;
+static timers_state_t *g_timers_state;
 
-extern uint16_t G_red_period;
-extern uint16_t G_green_period;
-extern uint16_t G_yellow_period;
+void timers_init(timers_state_t * timers_state)
+{
+  /* store timers state and initialize defaults */
+  g_timers_state = timers_state;
+  g_timers_state->ms_ticks = 0;
+  g_timers_state->yellow_ticks = 0;
+  g_timers_state->red_period = 1000;
+  g_timers_state->green_period = 1000;
+  g_timers_state->yellow_period = 1000;
 
-extern uint16_t G_release_red;
+  // -------------------------  RED --------------------------------------//
+  // Software Clock Using Timer/Counter 0.
+  // THE ISR for this is below.
+  TCCR0A |= (1 << WGM01);  // Mode = CTC
+  TCCR0B |= (1 << CS02 | 1 << CS00);  // Clock Divider, 1024
+  OCR0A = 20; // set top to be at 20
+  TIMSK0 |= (1 << OCIE0A); // Unmkask interrupt for output compare match A
 
-void init_timers() {
-/*
-	// -------------------------  RED --------------------------------------//
-	// Software Clock Using Timer/Counter 0.
-	// THE ISR for this is below.
-
-	// SET appropriate bits in TCCR....
-
-	// Using CTC mode with OCR0 for TOP. This is mode X, thus WGM0/1/0 = .
->
-	
-	// Using pre-scaler XX. This is CS0/2/1/0 = 
->
-	
-	// Software Clock Interrupt Frequency: 1000 = f_IO / (prescaler*OCR0)
-	// Set OCR0 appropriately for TOP to generate desired frequency of 1KHz
-	printf("Initializing software clock to freq 1000Hz (period 1 ms)\n");	
->	OCR0 = ;
-
-	//Enable output compare match interrupt on timer 0A
->
-
-	// Initialize counter
-	G_ms_ticks = 0;
-*/
-
-	//--------------------------- YELLOW ----------------------------------//
-	// Set-up of interrupt for toggling yellow LEDs. 
-	// This task is "self-scheduled" in that it runs inside the ISR that is 
-	// generated from a COMPARE MATCH of 
-	//      Timer/Counter 1 to OCR3A.
-	// Obviously, we could use a single timer to schedule everything, but we are experimenting here!
-	// THE ISR for this is in the LEDs.c file
-
+  //--------------------------- YELLOW ----------------------------------//
+  // Set-up of interrupt for toggling yellow LEDs. 
+  // This task is "self-scheduled" in that it runs inside the ISR that is 
+  // generated from a COMPARE MATCH of 
+  //      Timer/Counter 1 to OCR3A.
+  // Obviously, we could use a single timer to schedule everything, but we are experimenting here!
+  // THE ISR for this is in the LEDs.c file
+  
 /*
 	// SET appropriate bits in TCCR ...
 
