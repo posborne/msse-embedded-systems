@@ -7,6 +7,7 @@
 #define __TIMER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
   /* ticks */
@@ -17,6 +18,9 @@ typedef struct {
   volatile uint16_t red_period;
   volatile uint16_t green_period;
   volatile uint16_t yellow_period;
+
+  /* state information */
+  volatile bool release_red;
 } timers_state_t;
 
 // number of empty for loops to eat up about 1 ms

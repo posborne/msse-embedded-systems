@@ -103,7 +103,9 @@ int main() {
 			print(buf);
 		}
 		if (i % 10000 == 0) {
-			LOG(LVL_DEBUG, "i: %u, r: %u", i, g_led_state.red_toggles);
+			LOG(LVL_DEBUG, "ms_ticks:     %u", g_timers_state.ms_ticks);
+			LOG(LVL_DEBUG, "yellow_ticks: %u", g_led_state.yellow_toggles);
+			LOG(LVL_DEBUG, "TCNT1: %u", (TCNT1H << 8) & (TCNT1L));
 		}
 	}
 }
