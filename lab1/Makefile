@@ -8,6 +8,7 @@ AVRDUDE_DEVICE ?= m168
 
 CFLAGS=-g -Wall -Werror -mcall-prologues -DF_CPU=20000UL -mmcu=$(MCU) $(DEVICE_SPECIFIC_CFLAGS) -Os
 CC=avr-gcc
+AS=avr-as
 OBJ2HEX=avr-objcopy
 LDFLAGS=-Wl,-gc-sections -lpololu_$(DEVICE) -Wl,-relax
 
@@ -27,6 +28,12 @@ clean:
 
 %.obj: $(OBJECT_FILES)
 	$(CC) $(CFLAGS) $(OBJECT_FILES) $(LDFLAGS) -o $@
+
+%.s: %.c
+	$(CC) -mmcu=$(MCU) -fverbose-asm -S $<
+
+%.lst: %.s
+	$(AS) -a -mmcu=$(MCU) $< > test.lst
 
 program: $(TARGET).hex
 	$(AVRDUDE) -p $(AVRDUDE_DEVICE) -c avrisp2 -P $(PORT) -U flash:w:$(TARGET).hex
