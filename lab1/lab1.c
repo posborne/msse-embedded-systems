@@ -96,10 +96,11 @@ int main() {
 	while (1) {
 		i++;
 		log_service();
+		LED_ON(YELLOW);
 		if (i % 1000 == 0) {
 			char buf[128];
 			clear();
-			sprintf(buf, "r: %lu", g_led_state.red_toggles);
+			sprintf(buf, "ticks: %lu", g_timers_state.ms_ticks);
 			print(buf);
 		}
 		if (i % 10000 == 0) {

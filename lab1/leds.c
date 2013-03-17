@@ -105,11 +105,11 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 // INTERRUPT HANDLER for green LED
-//> ISR(XXXX) {
-//
-//	// This the Interrupt Service Routine for tracking green toggles. The toggling is done in hardware.
-//	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
-//	// This interrupts at the user-specified frequency for the green LED.
-//
-//	G_green_toggles++;
-//}
+ISR(TIMER3_COMPA_vect) {
+
+	// This the Interrupt Service Routine for tracking green toggles. The toggling is done in hardware.
+	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
+	// This interrupts at the user-specified frequency for the green LED.
+
+	g_led_state->green_toggles++;
+}
