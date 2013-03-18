@@ -89,21 +89,23 @@ static timers_state_t g_timers_state;
  * Main Loop
  */
 int main() {
-	uint16_t i = 0;
 	timers_init(&g_timers_state);
 	leds_init(&g_led_state);
 	log_init();
 	while (1) {
-		i++;
-		log_service();
+        // TODO: we could miss a frame and will likely trigger multiple
+        // times within a ms.  This is not a real scheduler
+        bool schedule_lcd = (get_uptime_ms() % 50 == 0);
+        bool schedule_serial = (get_uptime_ms() % 1000 == 0);
+	    log_service();
 		LED_ON(YELLOW);
-		if (i % 1000 == 0) {
+		if (schedule_lcd) {
 			char buf[128];
 			clear();
 			sprintf(buf, "ticks: %lu", g_timers_state.ms_ticks);
 			print(buf);
 		}
-		if (i % 10000 == 0) {
+		if (schedule_serial) {
 			LOG(LVL_DEBUG, "ms_ticks:     %u", g_timers_state.ms_ticks);
 			LOG(LVL_DEBUG, "yellow_ticks: %u", g_led_state.yellow_toggles);
 			LOG(LVL_DEBUG, "TCNT1: %u", (TCNT1H << 8) & (TCNT1L));
