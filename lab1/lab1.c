@@ -92,11 +92,13 @@ int main() {
 	timers_init(&g_timers_state);
 	leds_init(&g_led_state);
 	log_init();
+	int i = 0;
 	while (1) {
+	    i++;
         // TODO: we could miss a frame and will likely trigger multiple
         // times within a ms.  This is not a real scheduler
-        bool schedule_lcd = (get_uptime_ms() % 50 == 0);
-        bool schedule_serial = (get_uptime_ms() % 1000 == 0);
+        bool schedule_lcd = (i % 50 == 0); // (timers_get_uptime_ms() % 50 == 0);
+        bool schedule_serial = (i % 1000000 == 0); // (timers_get_uptime_ms() % 1000 == 0);
 	    log_service();
 		LED_ON(YELLOW);
 		if (schedule_lcd) {
@@ -106,8 +108,8 @@ int main() {
 			print(buf);
 		}
 		if (schedule_serial) {
-			LOG(LVL_DEBUG, "ms_ticks:     %u", g_timers_state.ms_ticks);
-			LOG(LVL_DEBUG, "yellow_ticks: %u", g_led_state.yellow_toggles);
+			LOG(LVL_DEBUG, "ms_ticks:    %u", g_timers_state.ms_ticks);
+			LOG(LVL_DEBUG, "green_ticks: %u", g_led_state.green_toggles);
 			LOG(LVL_DEBUG, "TCNT1: %u", (TCNT1H << 8) & (TCNT1L));
 		}
 	}
