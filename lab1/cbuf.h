@@ -3,7 +3,7 @@
 #ifndef __CBUF_H
 #define __CBUF_H
 
-#include "inttypes.h"
+#include <stdint.h>
 
 //TODO:
 //  Maybe add an element to the struct for 
@@ -36,9 +36,9 @@
 //   This would allow for easier determination of available/used
 //   memory at compile time.
 typedef struct __cbuf_t {
-  uint16_t tail, head;
-  uint16_t size;
-  uint8_t *buf;
+    uint16_t tail, head;
+    uint16_t size;
+    uint8_t *buf;
 } cbuf_t;
 
 //fill in the struct, with the buffer being an already
@@ -57,7 +57,6 @@ typedef struct __cbuf_t {
 
 #define CBUF_FULL(cbuf)				\
   ( (CBUF_LEN(cbuf)) >= (cbuf)->size)
-
 
 //!!push and pop do not do any sanity checking!!
 //  that is left to the application programmer
