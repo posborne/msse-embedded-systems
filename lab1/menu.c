@@ -1,19 +1,40 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <pololu/orangutan.h>
 #include "menu.h"
 #include "leds.h"
 #include "timers.h"
 #include "log.h"
 
-void menu_init()
+typedef struct {
+    char buffer[32];
+    uint8_t len;
+} receive_buffer_t;
+
+// local "global" data structures
+static led_state_t * g_led_state;
+static led_state_t * g_timers_state;
+static receive_buffer_t g_receive_buffer = { .len = 0 };
+
+#define MENU "\rMenu: {TPZ} {RGYA} <int>: "
+
+/*
+ * Initiailize the menuing system
+ */
+int menu_init(led_state_t * led_state, timers_state_t * timers_state)
 {
-    // nothing to do really.
-    printf("MENU: {T/P/Z} {R/G/Y/A} <int>\n");
-    printf("> ");
+    /* dependencies */
+    g_led_state = led_state;
+    g_timers_state = timers_state;
+
+    serial_receive_ring(USB_COMM, g_receive_buffer, sizeof(g_receive_buffer.len));
+    LOG(LVL_INFO, "USB Serial Initialized\n");
+    LOG(LVL_INFO, MENU);
+    return 0;
 }
 
 // Parse user-input and implement commands
-void menu(led_state_t * led_state, timers_state_t * timers_state)
+int menu_service(void)
 {
     char color;
     char op_char;
@@ -21,8 +42,11 @@ void menu(led_state_t * led_state, timers_state_t * timers_state)
     int parsed;
     int value;
 
-    input = USART1_get_input();
-    parsed = sscanf(input, "%c %c %d", &op_char, &color, &value);
+    input = serial_receive(USB_COMM,
+            &g_receive_buffer.buffer[g_receive_buffer.len],
+            sizeof g_receive_buffer.buffer - g_receive_buffer.len);
+
+    parsed = sscanf(input, "%s %s %d", &op_char, &color, &value);
     printf("Parsed as op:%c color:%c value:%d\n", op_char, color, value);
 
     /* convert color to upper and check if valid*/
@@ -35,7 +59,7 @@ void menu(led_state_t * led_state, timers_state_t * timers_state)
         break;
     default:
         printf("Bad color\n");
-        return;
+        return 0;
     }
 
     /* Check valid command and implement */
@@ -97,5 +121,6 @@ void menu(led_state_t * led_state, timers_state_t * timers_state)
 
     } // end switch(op_char)
     printf("> ");
+    return 0;
 } // end menu()
 
