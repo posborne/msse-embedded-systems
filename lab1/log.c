@@ -18,7 +18,7 @@ void log_service() {
 void log_message(log_level_e lvl, char *fmt, ...) {
 	int sent_bytes;
 	int msg_len;
-	char tmpbuf[256];
+	char tmpbuf[LOG_BUFFER_SIZE];
 
 	/* service any bytes that we might have gotten recently */
 	if ((sent_bytes = serial_get_sent_bytes(USB_COMM)) > 0) {
@@ -47,5 +47,5 @@ void log_message(log_level_e lvl, char *fmt, ...) {
 	g_serial_state.serbuf[g_serial_state.bytes_buffered + msg_len] = '\r';
 	g_serial_state.serbuf[g_serial_state.bytes_buffered + msg_len + 1] = '\n';
 	g_serial_state.bytes_buffered += (msg_len + 2);
-	serial_send(USB_COMM, g_serial_state.serbuf, g_serial_state.bytes_buffered);
+	serial_send_blocking(USB_COMM, g_serial_state.serbuf, g_serial_state.bytes_buffered);
 }

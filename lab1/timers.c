@@ -11,6 +11,31 @@
 #define WIDTH_8_BITS  (0x00FF)
 #define WIDTH_16_BITS (0xFFFF)
 
+#define TC0_MODE_MASK    (1 << WGM02 | 1 << WGM01 | 1 << WGM00)
+#define TC0_DIVIDER_MASK (1 << CS02 | 1 << CS01 | 1 << CS00)
+#define TC1_MODE_MASK    (1 << WGM12 | 1 << WGM11 | 1 << WGM10)
+#define TC1_DIVIDER_MASK (1 << CS12 | 1 << CS11 | 1 << CS10)
+#define TC3_MODE_MASK    (1 << WGM32 | 1 << WGM31 | 1 << WGM30)
+#define TC3_DIVIDER_MASK (1 << CS32 | 1 << CS31 | 1 << CS30)
+
+
+typedef void (*set_mode_t)(uint8_t mode);
+typedef void (*set_divider_t)(uint8_t divider);
+typedef void (*set_top_t)(uint16_t top);
+
+static void tc0_set_mode(uint8_t mode) { TCCR0A |= (1 << WGM01); }
+static void tc0_set_divider(uint8_t divider) { TCCR0B &= ~(TC0_DIVIDER_MASK); TCCR0B |= (divider & TC0_DIVIDER_MASK); }
+static void tc0_set_top(uint16_t top) { OCR0A = (uint8_t)top; }
+
+static void tc1_set_mode(uint8_t mode) { TCCR1A |= (1 << WGM12); }
+static void tc1_set_divider(uint8_t divider) { TCCR1B &= ~(TC1_DIVIDER_MASK); TCCR1B |= (divider & TC1_DIVIDER_MASK); }
+static void tc1_set_top(uint16_t top) { OCR1A = top; }
+
+static void tc3_set_mode(uint8_t mode) { TCCR3B |= (1 << WGM32); }
+static void tc3_set_divider(uint8_t divider) { TCCR3B &= ~(TC3_DIVIDER_MASK); TCCR3B |= (divider & TC3_DIVIDER_MASK); }
+static void tc3_set_top(uint16_t top) { OCR3A = top; }
+
+
 typedef struct {
     bool match_found;
     uint32_t top_value;
@@ -28,8 +53,7 @@ typedef struct {
 } clock_mode_t;
 
 typedef struct {
-    uint8_t top_register_ioaddr_8;
-    uint16_t top_register_ioaddr_16;
+    set_top_t set_top;
     uint16_t width;
 } top_info_t;
 
@@ -37,12 +61,10 @@ typedef struct {
     timer_counter_e id;
     char * name;
 
-    uint8_t * divider_register_ioaddr;
-    uint8_t divider_mask;
+    set_divider_t set_divider;
     clock_divider_value_t divisors[5];
 
-    uint8_t * mode_register_ioaddr;
-    uint8_t mode_mask;
+    set_mode_t set_mode;
     clock_mode_t modes[1];
 
     top_info_t top_info;
@@ -53,8 +75,7 @@ static timer_counter_t tc0 = {
     .id = TIMER_COUNTER0,
     .name = "TIMER_COUNTER0",
 
-    .divider_register_ioaddr = (uint8_t *)0x25, // TCCR0B
-    .divider_mask = (1 << CS02 | 1 << CS01 | 1 << CS00),
+    .set_divider = tc0_set_divider,
     .divisors = {
          {1, (1 << CS00)},
          {8, (1 << CS01)},
@@ -63,14 +84,13 @@ static timer_counter_t tc0 = {
          {1024, (1 << CS02 | 1 << CS00)},
     },
 
-    .mode_register_ioaddr = (uint8_t *)0x80, /* TCCR1A */
-    .mode_mask = (1 << WGM02 || 1 << WGM01 || 1 << WGM00),
+    .set_mode = tc0_set_mode,
     .modes = {
         {TIMER_MODE_CTC, (1 << WGM02)},
     },
 
     .top_info = {
-        .top_register_ioaddr_8 = 0x27, // OCR0A
+        .set_top = tc0_set_top,
         .width = WIDTH_8_BITS
     }
 };
@@ -80,8 +100,7 @@ static timer_counter_t tc1 = {
     .id = TIMER_COUNTER1,
     .name = "TIMER_COUNTER1",
 
-    .divider_register_ioaddr = (uint8_t *)0x81, // TCCR1B
-    .divider_mask = (1 << CS12 | 1 << CS11 | 1 << CS10),
+    .set_divider = tc1_set_divider,
     .divisors = {
         {1, (1 << CS10)},
         {8, (1 << CS11)},
@@ -90,42 +109,14 @@ static timer_counter_t tc1 = {
         {1024, (1 << CS12 | 1 << CS10)},
     },
 
-    .mode_register_ioaddr = (uint8_t *)0x80, // TCCR1A,
-    .mode_mask = (1 << WGM12 || 1 << WGM11 || 1 << WGM10),
+    .set_mode = tc1_set_mode,
     .modes = {
         {TIMER_MODE_CTC, (1 << WGM12)},
     },
 
     .top_info = {
-        .top_register_ioaddr_16 = 0x88, // OCR1A
+        .set_top = tc1_set_top,
         .width = WIDTH_16_BITS
-    }
-};
-
-/* 8-bit Timer/Counter2 */
-static timer_counter_t tc2 = {
-    .id = TIMER_COUNTER2,
-    .name = "TIMER_COUNTER2",
-
-    .divider_register_ioaddr = (uint8_t *)0xB1, // TCCR2B,
-    .divider_mask = (1 << CS22 | 1 << CS21 | 1 << CS20),
-    .divisors = {
-        {1, (1 << CS20)},
-        {8, (1 << CS21)},
-        {64, (1 << CS21 | 1 << CS20)},
-        {256, (1 << CS22)},
-        {1024, (1 << CS22 | 1 << CS20)},
-    },
-
-    .mode_register_ioaddr = (uint8_t *)0xB0, // TCCR2A,
-    .mode_mask = (1 << WGM22 || 1 << WGM21 || 1 << WGM20),
-    .modes = {
-        {TIMER_MODE_CTC, (1 << WGM22)},
-    },
-
-    .top_info = {
-        .top_register_ioaddr_8 = 0xB3, // OCR2A
-        .width = WIDTH_8_BITS
     }
 };
 
@@ -134,8 +125,7 @@ static timer_counter_t tc3 = {
     .id = TIMER_COUNTER3,
     .name = "TIMER_COUNTER3",
 
-    .divider_register_ioaddr = (uint8_t *)0x91, // TCCR3B
-    .divider_mask = (1 << CS32 | 1 << CS31 | 1 << CS30),
+    .set_divider = tc3_set_divider,
     .divisors = {
         {1, (1 << CS30)},
         {8, (1 << CS31)},
@@ -144,20 +134,19 @@ static timer_counter_t tc3 = {
         {1024, (1 << CS32 | 1 << CS30)},
     },
 
-    .mode_register_ioaddr = (uint8_t *)0x90, // TCCR3A
-    .mode_mask = (1 << WGM32 || 1 << WGM31 || 1 << WGM30),
+    .set_mode = tc3_set_mode,
     .modes = {
         {TIMER_MODE_CTC, (1 << WGM32)},
     },
 
     .top_info = {
-        .top_register_ioaddr_16 = 0x98, // OCR3A
+        .set_top = tc3_set_top,
         .width = WIDTH_16_BITS
     }
 };
 
 static timers_state_t *g_timers_state;
-static timer_counter_t * timer_counters[] = {&tc0, &tc1, &tc2, &tc3};
+static timer_counter_t * timer_counters[] = {&tc0, &tc1, &tc3};
 
 /*
  * Give a target period, divisor and width try to find optimal value
@@ -169,11 +158,8 @@ static timer_counter_search_result_t find_top_value(
 {
     timer_counter_search_result_t result;
     uint32_t top;
-//    LOG(LVL_DEBUG, " > find_top_value(period_us=%lu, divisor=%u, width=0x%04X)",
-//            target_period_us, clock_divisor, width);
     top = (uint64_t)((20 * target_period_us) / clock_divisor);
     if (top > width) {
-//        LOG(LVL_DEBUG, "   match not found!");
         result.match_found = false;
         result.top_value = 0;
         result.delta_us = 0;
@@ -183,9 +169,6 @@ static timer_counter_search_result_t find_top_value(
         result.match_found = true;
         result.top_value = (uint32_t)top;
         result.delta_us = (uint32_t)abs(achieved_period_us - target_period_us);
-//        LOG(LVL_DEBUG, "   match found, top: %ld, achieved_period_us: %ld, "
-//                       "delta_us: %lu",
-//                       result.top_value, achieved_period_us, result.delta_us);
     }
     return result;
 }
@@ -203,7 +186,6 @@ static int timers_program_timer(
 {
     clock_mode_t mode_info;
     int i;
-    top_info_t tinfo;
 
     LOG(LVL_DEBUG, "Setting divider: %u, top: %u",
             divisor->denominator, top);
@@ -216,23 +198,11 @@ static int timers_program_timer(
         }
     }
 
+    /* set the appropriate register via helper functions */
+    timer_counter->set_mode(mode_info.mode_flags);
+    timer_counter->set_divider(divisor->clock_select_flags);
+    timer_counter->top_info.set_top(top);
 
-    _SFR_MEM8((uint8_t *)timer_counter->mode_register_ioaddr) &= ~(timer_counter->mode_mask);
-    _SFR_MEM8((uint8_t *)timer_counter->mode_register_ioaddr) |= (mode_info.mode_flags);
-//    TCCR1B &= ~(timer_counter->mode_mask);
-//    TCCR1B |= (mode_info.mode_flags);
-
-    /* now set the pre-scaler */
-    _SFR_MEM8(timer_counter->divider_register_ioaddr) &= (timer_counter->divider_mask);
-    _SFR_MEM8(timer_counter->divider_register_ioaddr) |= (divisor->clock_select_flags);
-
-    /* now, set the top value */
-    tinfo = timer_counter->top_info;
-    if (tinfo.width == WIDTH_8_BITS) {
-        _SFR_IO8(tinfo.top_register_ioaddr_8) = (uint8_t)(divisor->denominator & 0xFF);
-    } else {
-        _SFR_MEM16(tinfo.top_register_ioaddr_16) = (uint16_t)(divisor->denominator);
-    }
     return 0;
 }
 
@@ -325,22 +295,75 @@ void timers_init(timers_state_t * timers_state)
     g_timers_state->release_red = false;
 
     // -------------------------  RED --------------------------------------//
-    // Software Clock Using Timer/Counter 0.
-    // THE ISR for this is below.
-    timers_setup_timer(TIMER_COUNTER0, TIMER_MODE_CTC, 1000);
+    // Timer Interrupt Using TC0
+    //
+    // We want the RED timer to trigger an interrupt once every millisecond
+    // (that is, once every 1000 microseconds)
+    //
+
+#define USE_SETUP
+#ifdef USE_SETUP
+    timers_setup_timer(TIMER_COUNTER0, TIMER_MODE_CTC, 1000UL);
+#else
+    TCCR0A |= (1 << WGM01); // Mode = CTC
+    TCCR0B |= (1 << CS02); // Clock Divider, 256
+    OCR0A = 78;
+#endif
     TIMSK0 |= (1 << OCIE0A); // Unmask interrupt for output compare match A on TC0
 
-    //--------------------------- YELLOW ----------------------------------//
-    // Set-up of interrupt for toggling yellow LEDs.
+    //--------------------------- YELLOW ----------------------------------
+    // Timer Interrupt Using TC3
     //
-    // For yellow, we will be using Timer/Counter 3
-    timers_setup_timer(TIMER_COUNTER3, TIMER_MODE_CTC, 100000);
+    // We want the Yellow timer to trigger an interrupt once every 100ms
+    //
+#ifdef USE_SETUP
+    timers_setup_timer(TIMER_COUNTER3, TIMER_MODE_CTC, 100000UL);
+#else
+    TCCR3A |= (1 << WGM12); // CTC Mode for Timer/Counter 1
+    TCCR3B |= (1 << CS12); // Clock Divider = 64
+
+    // TOP is split over two registers as it is 16-bits
+    TCNT3H = (19531 & (0xFF00)) >> 8;
+    TCNT3L = (19531 & 0xFF);
+#endif
     TIMSK3 |= (1 << OCIE3A); // Unmask interrupt for output compare match A on TC1
 
-    //--------------------------- GREEN ----------------------------------//
+    //--------------------------- GREEN ----------------------------------
+    // Timer Interrupt Using TC1
+    //
+    // We want the Green timer to trigger once every second.
+    //
     DDRD |= (1 << DDD5); // set DDR5 as an output
-    timers_setup_timer(TIMER_COUNTER1, TIMER_MODE_CTC, 1000000);
+    TCCR1A |= (1 << COM1A0);
+#ifdef USE_SETUP
+    timers_setup_timer(TIMER_COUNTER1, TIMER_MODE_CTC, 1000000UL);
+#else
+    TCCR1A |= (1 << WGM12 | 1 << COM1A0); // CTC Mode for Timer/Counter 1
+
+    //TCCR1A |= (1 << COM1A0);
+    TCCR1B |= (1 << CS12); // Clock Divider = 64
+
+    // TOP is split over two registers as it is 16-bits
+    TCNT1H = (19531 & (0xFF00)) >> 8;
+    TCNT1L = (19531 & 0xFF);
+#endif
     TIMSK1 |= (1 << OCIE1A); // Unmask interrupt for output compare match A on TC1
+
+    /* Log key registers */
+    LOG(LVL_DEBUG, "TCCR0A: 0x%02X", TCCR0A);
+    LOG(LVL_DEBUG, "TCCR0B: 0x%02X", TCCR0B);
+    LOG(LVL_DEBUG, "OCR0A:  0x%02X", OCR0A);
+
+    LOG(LVL_DEBUG, "--------------");
+    LOG(LVL_DEBUG, "TCCR1A: 0x%02X", TCCR1A);
+    LOG(LVL_DEBUG, "TCCR1B: 0x%02X", TCCR1B);
+    LOG(LVL_DEBUG, "OCR1A:  0x%04X", OCR1A);
+
+    LOG(LVL_DEBUG, "--------------");
+    LOG(LVL_DEBUG, "TCCR3A: 0x%02X", TCCR3A);
+    LOG(LVL_DEBUG, "TCCR3B: 0x%02X", TCCR3B);
+    LOG(LVL_DEBUG, "OCR3A:  0x%04X", OCR3A);
+
 
     /* enable global interrupts */
     sei();
