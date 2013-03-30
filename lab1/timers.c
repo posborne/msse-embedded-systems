@@ -3,9 +3,10 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <avr/interrupt.h>
-#include "timers.h"
 #include "leds.h"
 #include "log.h"
+#include "timers.h"
+#include "scheduler.h"
 
 #define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 #define WIDTH_8_BITS  (0x00FF)
@@ -187,7 +188,7 @@ static int timers_program_timer(
     clock_mode_t mode_info;
     int i;
 
-    LOG(LVL_DEBUG, "Setting divider: %u, top: %u",
+    LOG(LVL_DEBUG, "Setting divider: %u, top: %u\r\n",
             divisor->denominator, top);
 
     /* first, set the mode */
@@ -249,7 +250,7 @@ int timers_setup_timer(
         }
     }
 
-    LOG(LVL_DEBUG, "Setting up timer %s (period_ms: %lu)",
+    LOG(LVL_DEBUG, "Setting up timer %s (period_ms: %lu)\r\n",
             tc->name, target_period_microseconds / 1000);
 
     /* find the most appropriate pre-scaler/top value */
@@ -350,19 +351,19 @@ void timers_init(timers_state_t * timers_state)
     TIMSK1 |= (1 << OCIE1A); // Unmask interrupt for output compare match A on TC1
 
     /* Log key registers */
-    LOG(LVL_DEBUG, "TCCR0A: 0x%02X", TCCR0A);
-    LOG(LVL_DEBUG, "TCCR0B: 0x%02X", TCCR0B);
-    LOG(LVL_DEBUG, "OCR0A:  0x%02X", OCR0A);
+    LOG(LVL_DEBUG, "TCCR0A: 0x%02X\r\n", TCCR0A);
+    LOG(LVL_DEBUG, "TCCR0B: 0x%02X\r\n", TCCR0B);
+    LOG(LVL_DEBUG, "OCR0A:  0x%02X\r\n", OCR0A);
 
-    LOG(LVL_DEBUG, "--------------");
-    LOG(LVL_DEBUG, "TCCR1A: 0x%02X", TCCR1A);
-    LOG(LVL_DEBUG, "TCCR1B: 0x%02X", TCCR1B);
-    LOG(LVL_DEBUG, "OCR1A:  0x%04X", OCR1A);
+    LOG(LVL_DEBUG, "--------------\r\n");
+    LOG(LVL_DEBUG, "TCCR1A: 0x%02X\r\n", TCCR1A);
+    LOG(LVL_DEBUG, "TCCR1B: 0x%02X\r\n", TCCR1B);
+    LOG(LVL_DEBUG, "OCR1A:  0x%04X\r\n", OCR1A);
 
-    LOG(LVL_DEBUG, "--------------");
-    LOG(LVL_DEBUG, "TCCR3A: 0x%02X", TCCR3A);
-    LOG(LVL_DEBUG, "TCCR3B: 0x%02X", TCCR3B);
-    LOG(LVL_DEBUG, "OCR3A:  0x%04X", OCR3A);
+    LOG(LVL_DEBUG, "--------------\r\n");
+    LOG(LVL_DEBUG, "TCCR3A: 0x%02X\r\n", TCCR3A);
+    LOG(LVL_DEBUG, "TCCR3B: 0x%02X\r\n", TCCR3B);
+    LOG(LVL_DEBUG, "OCR3A:  0x%04X\r\n", OCR3A);
 
 
     /* enable global interrupts */
@@ -384,4 +385,7 @@ ISR(TIMER0_COMPA_vect)
     if ((g_timers_state->ms_ticks % g_timers_state->red_period) == 0) {
         g_timers_state->release_red = true;
     }
+
+    // service the scheduler
+    scheduler_do_schedule();
 }
