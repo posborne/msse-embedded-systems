@@ -8,7 +8,7 @@
 
 #include <inttypes.h> //gives us uintX_t
 
-void init_menu();
+int menu_init();
 void menu();
 
 #endif //__MENU_H
