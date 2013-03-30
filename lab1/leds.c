@@ -37,57 +37,6 @@ void leds_init(led_state_t * led_state) {
   LED_OFF(YELLOW);
 }
 
-/*
-void leds_set_toggle(char color, int ms) {
-
-		// check toggle ms is positive and multiple of 100
-		if (ms<0) {
-			printf("Cannot toggle negative ms.\n");
-			return;
-		}
-
-		if (~((ms%100)==0)) {
-			ms = ms - (ms%100);
-			printf("Converted to toggle period: %d.\n",ms);
-		}
-		
-		// For each color, if ms is 0, turn it off by changing data direction to input.
-		// If it is >0, set data direction to output.
-		if ((color=='R') || (color=='A')) {
-			if (ms==0)
->				
-			else
->				
-			G_red_period = ms;
-		}
-
-		if ((color=='Y') || (color=='A')) {
-			if (ms==0)
->				
-			else
->				
-			G_yellow_period = ms;
-		}
-
-		if ((color=='G') || (color=='A')) {
-			if (ms==0)
->				
-			else
->				
-
-			// green has a limit on its period.
-			if ( ms > 4000) ms = 4000;
-			G_green_period = ms;
-			
-			// set the OCR1A (TOP) to get (approximately) the requested frequency.
-			if ( ms > 0 ) {
->				OCR1A = 
->				printf("Green to toggle at freq %dHz (period %d ms)\n", XXXXX ,G_green_period);	
-			}
- 		}
-}
-*/
-
 
 /*
  * Interrupt Service Routines

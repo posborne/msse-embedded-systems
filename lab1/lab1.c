@@ -81,39 +81,89 @@
 #include "leds.h"
 #include "timers.h"
 #include "log.h"
+#include "scheduler.h"
+#include "menu.h"
+
+#define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 
 static led_state_t g_led_state;
 static timers_state_t g_timers_state;
 
 /*
+ * TASK: Logs Service
+ *
+ * Periodically tell the serial port to handle input/output
+ */
+static void
+service_logs(void)
+{
+    serial_check();
+}
+
+/*
+ * TASK: Print Info
+ *
+ * Periodically print out information about system state to serial port
+ */
+static void
+print_info(void)
+{
+    LOG(LVL_DEBUG, "ms_ticks     (TC0): %lu\r\n", g_timers_state.ms_ticks);
+    LOG(LVL_DEBUG, "yellow_ticks (TC1): %u\r\n", g_led_state.yellow_toggles);
+    LOG(LVL_DEBUG, "green_ticks  (TC3): %u\r\n", g_led_state.green_toggles);
+}
+
+/*
+ * TASK: Update LCD
+ *
+ * Periodically update the LCD with information about system state
+ */
+static void
+update_lcd(void)
+{
+    char buf[128];
+    clear();
+    sprintf(buf, "ticks: %lu", g_timers_state.ms_ticks);
+    print(buf);
+}
+
+static void
+service_menu(void)
+{
+    menu_service();
+}
+
+static task_t g_tasks[] = {
+    {"Serial Check", 1/* ms */, service_logs},
+    {"Print Info", 60000 /* ms */, print_info},
+    {"Update LCD", 250 /* ms */, update_lcd},
+    {"Service Menu", 50 /* ms */, service_menu},
+};
+
+
+/*
  * Main Loop
  */
 int main() {
-    LOG(LVL_DEBUG, "--------------------------------");
-	timers_init(&g_timers_state);
+    LOG(LVL_DEBUG, "--------------------------------\r\n");
+    log_init();
+    timers_init(&g_timers_state);
+	log_service();
 	leds_init(&g_led_state);
-	log_init();
-	int i = 0;
+	log_service();
+	scheduler_init(&g_timers_state, g_tasks, COUNT_OF(g_tasks));
+    menu_init(&g_led_state, &g_timers_state);
+	g_timers_state.ms_ticks = 0;
 	while (1) {
-	    i++;
-        // TODO: we could miss a frame and will likely trigger multiple
-        // times within a ms.  This is not a real scheduler
-        bool schedule_lcd = (i % 5000 == 0); // (timers_get_uptime_ms() % 50 == 0);
-	    log_service();
+	    // NOTE: this could be handled using the scheduler.  Keeping as is
+	    // in order to match assignment requirements more closely
 	    if (g_timers_state.release_red) {
-	        g_timers_state.release_red = false;
-	        LED_TOGGLE(RED);
+            LED_TOGGLE(RED);
+            g_led_state.red_toggles++;
+            g_timers_state.release_red = false;
 	    }
-		if (schedule_lcd) {
-			char buf[128];
-			clear();
-			sprintf(buf, "ticks: %lu", g_timers_state.ms_ticks);
-			print(buf);
-		}
-		if (0 && i % 5000 == 0) {
-            LOG(LVL_DEBUG, "ms_ticks     (TC0): %u", g_timers_state.ms_ticks);
-			LOG(LVL_DEBUG, "yellow_ticks (TC1): %u", g_led_state.yellow_toggles);
-			LOG(LVL_DEBUG, "green_ticks  (TC3): %u", g_led_state.green_toggles);
-		}
+
+	    // This is where most stuff will happen
+	    scheduler_service();
 	}
 }

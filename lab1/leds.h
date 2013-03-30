@@ -16,7 +16,7 @@ typedef struct {
   volatile uint32_t yellow_toggles;
 
   /* period information */
-  volatile uint16_t red_perdiod;
+  volatile uint16_t red_period;
   volatile uint16_t green_period;
   volatile uint16_t yellow_period;
 } led_state_t;
@@ -43,7 +43,6 @@ typedef struct {
 
 // function call prototypes
 void leds_init();
-void leds_set_toggle(char color, int ms);
 
 #endif
 
