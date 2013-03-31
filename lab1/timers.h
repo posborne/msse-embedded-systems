@@ -34,11 +34,13 @@ typedef struct {
   volatile bool release_red;
 } timers_state_t;
 
-// number of empty for loops to eat up about 1 ms
-#define FOR_COUNT_10MS (20000)  // TODO: find real number
+// number of empty for loops to eat up about 10 ms
+//
+// This is completely dependent on optimization flags.  This
+// number was computed with -O0.
+#define FOR_COUNT_10MS (5405)
 
 uint32_t __ii;
-
 #define WAIT_10MS {for (__ii=0;__ii<FOR_COUNT_10MS; __ii++);}
 
 #define G_TIMER_RESOLUTION 100

@@ -85,9 +85,28 @@
 #include "menu.h"
 
 #define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
+//#define DO_BUSY_WAIT_TEST
+#define PERIODIC_LOGGING
 
-static led_state_t g_led_state;
-static timers_state_t g_timers_state;
+static led_state_t g_led_state = {
+        .red_toggles = 0,
+        .green_toggles = 0,
+        .yellow_toggles = 0,
+};
+
+static timers_state_t g_timers_state = {
+        .ms_ticks = 0,
+        .yellow_ticks = 0,
+        .red_period = 500,
+#ifdef DO_BUSY_WAIT_TEST
+        .yellow_period = 1000,
+        .green_period = 1000,
+#else
+        .yellow_period = 500,
+        .green_period = 500,
+#endif
+        .release_red = false
+};
 
 /*
  * TASK: Logs Service
@@ -100,6 +119,7 @@ service_logs(void)
     serial_check();
 }
 
+#ifdef PERIODIC_LOGGING
 /*
  * TASK: Print Info
  *
@@ -108,10 +128,11 @@ service_logs(void)
 static void
 print_info(void)
 {
-    LOG(LVL_DEBUG, "ms_ticks     (TC0): %lu\r\n", g_timers_state.ms_ticks);
-    LOG(LVL_DEBUG, "yellow_ticks (TC1): %u\r\n", g_led_state.yellow_toggles);
-    LOG(LVL_DEBUG, "green_ticks  (TC3): %u\r\n", g_led_state.green_toggles);
+    LOG("red toggles:    %u\r\n", g_led_state.red_toggles);
+    LOG("yellow toggles: %u\r\n", g_led_state.yellow_toggles);
+    LOG("green toggles:  %u\r\n", g_led_state.green_toggles);
 }
+#endif
 
 /*
  * TASK: Update LCD
@@ -135,7 +156,9 @@ service_menu(void)
 
 static task_t g_tasks[] = {
     {"Serial Check", 1/* ms */, service_logs},
+#ifdef PERIODIC_LOGGING
     {"Print Info", 60000 /* ms */, print_info},
+#endif
     {"Update LCD", 250 /* ms */, update_lcd},
     {"Service Menu", 50 /* ms */, service_menu},
 };
@@ -145,16 +168,24 @@ static task_t g_tasks[] = {
  * Main Loop
  */
 int main() {
-    LOG(LVL_DEBUG, "--------------------------------\r\n");
+    LOG("--------------------------------\r\n");
     log_init();
     timers_init(&g_timers_state);
-	log_service();
 	leds_init(&g_led_state);
-	log_service();
 	scheduler_init(&g_timers_state, g_tasks, COUNT_OF(g_tasks));
     menu_init(&g_led_state, &g_timers_state);
-	g_timers_state.ms_ticks = 0;
+
+    /* enable global interrupts (do last to make timing closer) */
+    sei();
+
 	while (1) {
+#ifdef DO_BUSY_WAIT_TEST
+	    int i;
+	    for (i = 0; i < 100; i++) {
+	        WAIT_10MS
+	    }
+	    LED_TOGGLE(RED);
+#else
 	    // NOTE: this could be handled using the scheduler.  Keeping as is
 	    // in order to match assignment requirements more closely
 	    if (g_timers_state.release_red) {
@@ -165,5 +196,6 @@ int main() {
 
 	    // This is where most stuff will happen
 	    scheduler_service();
+#endif
 	}
 }

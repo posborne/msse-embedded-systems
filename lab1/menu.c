@@ -35,7 +35,7 @@ static int leds_set_toggle(char color, const uint16_t ms) {
         } else {
             LED_ENABLE(RED);
         }
-        g_led_state->red_period = ms;
+        g_timers_state->red_period = ms;
     }
 
     if ((color == 'Y') || (color == 'A')) {
@@ -45,7 +45,7 @@ static int leds_set_toggle(char color, const uint16_t ms) {
             LED_ENABLE(YELLOW);
             timers_setup_timer(TIMER_COUNTER3, TIMER_MODE_CTC, us);
         }
-        g_led_state->yellow_period = ms;
+        g_timers_state->yellow_period = ms;
     }
 
 
@@ -56,7 +56,7 @@ static int leds_set_toggle(char color, const uint16_t ms) {
             LED_ENABLE(GREEN);
             timers_setup_timer(TIMER_COUNTER1, TIMER_MODE_CTC, us);
         }
-        g_led_state->green_period = ms;
+        g_timers_state->green_period = ms;
     }
     return 0;
 }
@@ -71,11 +71,11 @@ menu_process_command(char * command)
 
     parsed = sscanf(command, "%c %c %u", &op_char, &color, &value);
     if (parsed < 2) {
-        LOG(LVL_DEBUG, "Command \"%s\" not valid.\r\n", command);
+        LOG("Command \"%s\" not valid.\r\n", command);
         return -1;
     }
 
-    LOG(LVL_DEBUG, "Parsed as op:%c color:%c value:%d\r\n", op_char, color, value);
+    LOG("Parsed as op:%c color:%c value:%d\r\n", op_char, color, value);
 
     /* convert color to upper and check if valid*/
     color -= 32 * (color >= 'a' && color <= 'z');
@@ -86,7 +86,7 @@ menu_process_command(char * command)
     case 'A':
         break;
     default:
-        LOG(LVL_DEBUG, "Bad color\r\n");
+        LOG("Bad color\r\n");
         return 0;
     }
 
@@ -104,22 +104,22 @@ menu_process_command(char * command)
     case 'p':
         switch (color) {
         case 'R':
-            LOG(LVL_DEBUG, "R toggles: %lu\r\n", g_led_state->red_toggles);
+            LOG("R toggles: %lu\r\n", g_led_state->red_toggles);
             break;
         case 'G':
-            LOG(LVL_DEBUG, "G toggles: %lu\r\n", g_led_state->green_toggles);
+            LOG("G toggles: %lu\r\n", g_led_state->green_toggles);
             break;
         case 'Y':
-            LOG(LVL_DEBUG, "Y toggles: %lu\r\n", g_led_state->yellow_toggles);
+            LOG("Y toggles: %lu\r\n", g_led_state->yellow_toggles);
             break;
         case 'A':
-            LOG(LVL_DEBUG, "toggles R:%lu  G:%lu  Y:%lu\r\n",
+            LOG("toggles R:%lu  G:%lu  Y:%lu\r\n",
                     g_led_state->red_toggles,
                     g_led_state->green_toggles,
                     g_led_state->yellow_toggles);
             break;
         default:
-            LOG(LVL_DEBUG, "How did you get here too??\r\n");
+            LOG("How did you get here too??\r\n");
             break;
         }
         break;
@@ -141,12 +141,12 @@ menu_process_command(char * command)
             g_led_state->red_toggles = g_led_state->green_toggles = g_led_state->yellow_toggles = 0;
             break;
         default:
-            LOG(LVL_DEBUG, "How did you get here 3??\r\n");
+            LOG("How did you get here 3??\r\n");
             break;
         }
         break;
     default:
-        LOG(LVL_DEBUG, "%s does not compute??\r\n", g_receive_buffer.ring_buffer);
+        LOG("%s does not compute??\r\n", g_receive_buffer.ring_buffer);
         break;
 
     } // end switch(op_char)
@@ -169,9 +169,9 @@ int menu_init(led_state_t * led_state, timers_state_t * timers_state)
     serial_receive_ring(
             USB_COMM, g_receive_buffer.ring_buffer,
             sizeof(g_receive_buffer.ring_buffer));
-    LOG(LVL_INFO, "USB Serial Initialized\r\n");
-    LOG(LVL_INFO, MENU);
-    LOG(LVL_DEBUG, "#> ");
+    LOG("USB Serial Initialized\r\n");
+    LOG(MENU);
+    LOG("#> ");
     return 0;
 }
 
@@ -187,7 +187,7 @@ int menu_service(void)
     while ((received_bytes = serial_get_received_bytes(USB_COMM)) != g_receive_buffer.ring_buffer_position) {
         // add the current byte to the command buffer
         c = g_receive_buffer.ring_buffer[g_receive_buffer.ring_buffer_position];
-        LOG(LVL_DEBUG, "%c", c);
+        LOG("%c", c);
         g_receive_buffer.command_buffer[g_receive_buffer.command_buffer_length++] = c;
         g_receive_buffer.ring_buffer_position =
                 (g_receive_buffer.ring_buffer_position == sizeof(g_receive_buffer.ring_buffer) - 1) ? 0 : g_receive_buffer.ring_buffer_position + 1;
@@ -201,14 +201,14 @@ int menu_service(void)
         int end_of_command = false;
         bool command_waiting = false;
         if ((loc = strstr(g_receive_buffer.command_buffer, "\r\n")) != NULL) {
-            LOG(LVL_DEBUG, "\r\n");
+            LOG("\r\n");
             idx = loc - g_receive_buffer.command_buffer;
             command_waiting = true;
             end_of_command = idx + 1;
             g_receive_buffer.command_buffer[idx] = '\0';
             g_receive_buffer.command_buffer[idx + 1] = '\0';
         } else if ((loc = strchr(g_receive_buffer.command_buffer, '\r')) != NULL) {
-            LOG(LVL_DEBUG, "\r\n");
+            LOG("\r\n");
             idx = loc - g_receive_buffer.command_buffer;
             command_waiting = true;
             end_of_command = idx;
@@ -219,7 +219,7 @@ int menu_service(void)
             // now, process the command and move any modify the contents of the
             // command_buffer to be in a valid state again
             menu_process_command(g_receive_buffer.command_buffer);
-            LOG(LVL_DEBUG, "#> ");
+            LOG("#> ");
             memcpy(g_receive_buffer.command_buffer,
                    &g_receive_buffer.command_buffer[end_of_command + 1],
                    sizeof(g_receive_buffer.command_buffer) - end_of_command);

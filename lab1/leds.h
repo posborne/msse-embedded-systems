@@ -14,11 +14,6 @@ typedef struct {
   volatile uint32_t red_toggles;
   volatile uint32_t green_toggles;
   volatile uint32_t yellow_toggles;
-
-  /* period information */
-  volatile uint16_t red_period;
-  volatile uint16_t green_period;
-  volatile uint16_t yellow_period;
 } led_state_t;
 
 // define the data direction registers
