@@ -371,13 +371,10 @@ void timers_init(timers_state_t * timers_state)
 }
 
 /*
- * Interrupt Service Routines
+ * 1ms ISR for TC0 (Red Led & Scheduler)
  */
 ISR(TIMER0_COMPA_vect)
 {
-    // This is the Interrupt Service Routine for Timer0
-    // Each time the TCNT count is equal to the OCR0 register, this interrupt is "fired".
-
     // Increment ticks
     g_timers_state->ms_ticks++;
 

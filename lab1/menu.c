@@ -25,33 +25,25 @@ static receive_buffer_t g_receive_buffer = {
 
 #define MENU "\rMenu: {TPZ} {RGYA} <int>\r\n"
 
-static int leds_set_toggle(char color, int ms) {
-    if (ms < 0) {
-        LOG(LVL_DEBUG, "Cannot toggle negative ms.\r\n");
-        return -1;
-    }
-
-    if (~((ms % 100) == 0)) {
-        ms = ms - (ms % 100);
-        LOG(LVL_DEBUG, "Converted to toggle period: %d.\r\n", ms);
-    }
-
+static int leds_set_toggle(char color, const uint16_t ms) {
     // For each color, if ms is 0, turn it off by changing data direction to input
     // If it is >0, set data direction to output
+    uint32_t us = ms * 1000UL;
     if ((color == 'R') || (color == 'A')) {
         if (ms == 0) {
-            /* TODO: */
+            LED_DISABLE(RED);
         } else {
-            /* TODO: */
+            LED_ENABLE(RED);
         }
         g_led_state->red_period = ms;
     }
 
     if ((color == 'Y') || (color == 'A')) {
         if (ms == 0) {
-            /* TODO: */
+            LED_DISABLE(YELLOW);
         } else {
-            /* TODO: */
+            LED_ENABLE(YELLOW);
+            timers_setup_timer(TIMER_COUNTER3, TIMER_MODE_CTC, us);
         }
         g_led_state->yellow_period = ms;
     }
@@ -59,9 +51,10 @@ static int leds_set_toggle(char color, int ms) {
 
     if ((color == 'G') || (color == 'A')) {
         if (ms == 0) {
-            /* TODO: */
+            LED_DISABLE(GREEN);
         } else {
-            /* TODO: */
+            LED_ENABLE(GREEN);
+            timers_setup_timer(TIMER_COUNTER1, TIMER_MODE_CTC, us);
         }
         g_led_state->green_period = ms;
     }
@@ -74,9 +67,9 @@ menu_process_command(char * command)
     int parsed;
     char color;
     char op_char;
-    int value = 0;
+    uint16_t value = 0;
 
-    parsed = sscanf(command, "%c %c %d", &op_char, &color, &value);
+    parsed = sscanf(command, "%c %c %u", &op_char, &color, &value);
     if (parsed < 2) {
         LOG(LVL_DEBUG, "Command \"%s\" not valid.\r\n", command);
         return -1;
