@@ -11,10 +11,10 @@ Task:
 
 Results:
   Using a few commands, one can generate a listing of the assembly for the
-  program along with releated C source lines.  Here's how I did it:
+  program along with related C source lines.  See the Makefile for the method
+  I used:
   
-    $ make lab1.obj
-    $ avr-objdump -d -M mips -S lab1.obj > lab1.lst
+    $ make lab1.lst
 
   This generates a listing with the following for a function where I call
   WAIT_10ms (NOTE: compiled with -O0 which eliminates any optimizations).  The
@@ -68,7 +68,7 @@ Results:
          1f2:       20 96           adiw    r28, 0x00       ; 0
          1f4:       e2 e0           ldi     r30, 0x02       ; 2
          1f6:       0c 94 b9 13     jmp     0x2772  ; 0x2772 <__epilogue_restores__+0x20>
-    
+  
   From this, we can use the datasheet in order to determine how long it will
   take to execute N iterations of the WAIT_10ms loop.  Here's the work behind
   that function:
@@ -103,13 +103,13 @@ Results:
     N = (20000000 * time(s)) / 37
 
   Solving for 10ms, we get the following:
-  
+
     N = (20000000 * 0.01) / 37
       = 5405.4
 
   So to wait 10ms we must execute the for loop ~5405 times.  Using this
   code empirically delivers good results in a snippet like this:
-  
+
     LED_ENABLE(RED);
     int i = 0, j = 0;
     for (j = 0; j < 10; j++) {
@@ -209,7 +209,7 @@ Task:
 Results:
   Using my scheduler, I set up a task to log once every 60s.  At 60s increments
   I saw the following counts (note that the 60s is based off the red timer, so
-  that matchup doesn't necessarily imply that timer is more accurate):
+  that match up doesn't necessarily imply that timer is more accurate):
 
     red toggles:    60
     yellow toggles: 61
@@ -253,7 +253,7 @@ Results:
   I saw all three lights blinking, with the red led blinking noticeably slower.
   Interestingly, at 60s (measured according to ms interrupt), the following
   very curious results were provided:
-  
+
     red toggles:    120
     yellow toggles: 147
     green toggles:  147
@@ -265,18 +265,67 @@ Results:
   This test was similar to the last one with the red led being noticeably laggy
   compared with the other two.  The main difference is that the green/yellow
   LEDs did appear to stay in sync (no little delay between them):
-  
+
     red toggles:    120
     yellow toggles: 147
     green toggles:  147
-  
+
 Experiment 4
 ============
 
+Task:
+  Repeat #3, except use a 110ms busy-wait. You probably won’t be able to use the
+  menu functions. If not, report that, and discuss what you observed from the
+  blinking. 
+
+Results:
+  Results were pretty similar to the previous experiment but exhausted a bit
+  more as shown by the test results shown below.
+
   Green Test:
 
+    red toggles:    120
+    yellow toggles: 154
+    green toggles:  154
 
   Yellow Test:
     red toggles:    119
     yellow toggles: 154
     green toggles:  154
+
+Experiment 5
+============
+
+Task:
+  Repeat #3, except use a 510ms busy-wait.
+
+Results:
+  In both cases, the green led seemed to blink as expected and the red
+  led did not blink at all.  
+
+  Green Test:
+    The green LED blinked at what appeared to be the correct period.  The
+    yellow LED stayed solid on and the red LED did not appear to blink at
+    all.
+
+  Yellow Test:
+    In the yellow test, both the yellow and green LEDs blink, though the
+    Yellow LED appeared to lag from the green led over time.  Again, the RED
+    led did not 
+    
+Experiment 6
+============
+
+Task:
+  Repeat #5 (i.e. 2Hz toggle with 510ms busy-wait), except place an sei() at
+  the top of the ISR with the for-loop in it.
+
+Results:
+
+  Yellow Test:
+    In the yellow test with interrupts enabled, the red led stayed off but
+    the red and yellow leds blinked in sync.
+
+  Green Test:
+    Enabling interrupts in the green LED ISR did not seem to result in
+    any differences from the previous experiment.

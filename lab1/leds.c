@@ -4,9 +4,10 @@
 #include "leds.h"
 #include "timers.h"
 
-#define DELAY_MS 110
-#define GREEN_DELAY_TEST
+#define DELAY_MS 510
+//#define GREEN_DELAY_TEST
 //#define YELLOW_DELAY_TEST
+//#define ENABLE_INTERRUPTS
 
 static led_state_t * g_led_state;
 
@@ -29,6 +30,10 @@ ISR(TIMER1_COMPA_vect) {
     // This the Interrupt Service Routine for tracking green toggles. The toggling is done in hardware.
     // Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
     // This interrupts at the user-specified frequency for the green LED.
+#ifdef ENABLE_INTERRUPTS
+    sei();
+#endif
+
 #ifdef YELLOW_DELAY_TEST
     int i;
     for (i = 0; i < (DELAY_MS / 10); i++) {
@@ -45,6 +50,10 @@ ISR(TIMER3_COMPA_vect) {
     // At creation of this file, it was initialized to interrupt every 100ms (10Hz).
     //
     // Increment ticks. If time, toggle YELLOW and increment toggle counter.
+#ifdef ENABLE_INTERRUPTS
+    sei();
+#endif
+
 #ifdef GREEN_DELAY_TEST
     int i;
     for (i = 0; i < (DELAY_MS / 10); i++) {
