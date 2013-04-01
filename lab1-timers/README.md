@@ -273,13 +273,13 @@ very curious results were provided:
     yellow toggles: 147
     green toggles:  147
 
-  In this test, there was a brief but noticeable delay between the toggle of the
-  green (first) and yellow LEDs.  The red LED was not in sync.
+In this test, there was a brief but noticeable delay between the toggle of the
+green (first) and yellow LEDs.  The red LED was not in sync.
 
-  Yellow Test:
-  This test was similar to the last one with the red led being noticeably laggy
-  compared with the other two.  The main difference is that the green/yellow
-  LEDs did appear to stay in sync (no little delay between them):
+Yellow Test:
+This test was similar to the last one with the red led being noticeably laggy
+compared with the other two.  The main difference is that the green/yellow
+LEDs did appear to stay in sync (no little delay between them):
 
     red toggles:    120
     yellow toggles: 147
@@ -324,30 +324,29 @@ In both cases, the green led seemed to blink as expected and the red
 led did not blink at all.  
 
 Green Test:
-
 The green LED blinked at what appeared to be the correct period.  The
 yellow LED stayed solid on and the red LED did not appear to blink at
 all.
 
 Yellow Test:
-
-    In the yellow test, both the yellow and green LEDs blink, though the
-    Yellow LED appeared to lag from the green led over time.  Again, the RED
-    led did not 
+In the yellow test, both the yellow and green LEDs blink, though the
+Yellow LED appeared to lag from the green led over time.  Again, the RED
+led did not 
     
 Experiment 6
 ------------
 
 ### Task
-  Repeat #5 (i.e. 2Hz toggle with 510ms busy-wait), except place an sei() at
-  the top of the ISR with the for-loop in it.
+
+Repeat #5 (i.e. 2Hz toggle with 510ms busy-wait), except place an sei() at
+the top of the ISR with the for-loop in it.
 
 ### Results
 
-  Yellow Test:
-    In the yellow test with interrupts enabled, the red led stayed off but
-    the red and yellow leds blinked in sync.
+Yellow Test:
+In the yellow test with interrupts enabled, the red led stayed off but
+the red and yellow leds blinked in sync.
 
-  Green Test:
-    Enabling interrupts in the green LED ISR did not seem to result in
-    any differences from the previous experiment.
+Green Test:
+Enabling interrupts in the green LED ISR did not seem to result in
+any differences from the previous experiment.
