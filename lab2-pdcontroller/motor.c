@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "log.h"
 #include "motor.h"
+#include "cli.h"
 
 /*
  * CONSTANTS
@@ -15,9 +16,9 @@
 #define MAX_TORQUE                   (255)
 
 /* Kp - The 'P' in PD */
-#define PROPORTIONAL_GAIN (1)
+#define PROPORTIONAL_GAIN (2)
 /* Kd  - The 'D' in PD */
-#define DERIVATIVE_GAIN   (1)
+#define DERIVATIVE_GAIN   (5)
 
 /*
  * MACROS
@@ -30,10 +31,32 @@ static timers_state_t * g_timers_state;
 static motor_state_t g_motor_state = {
     .current_torque = 0,
     .current_position = 0,
-    .target_position = 0,
+    .target_position = 1080,
     .current_velocity = 0,
     .last_position_change_ms = 0
 };
+
+/*
+ * Usage: target <degrees:int>
+ */
+static int clicmd_target_handler(char const * const args)
+{
+    int32_t target_degrees;
+    if (1 == sscanf(args, "%ld", &target_degrees)) {
+        g_motor_state.target_position = target_degrees;
+    }
+    return 0;
+}
+
+int32_t motor_get_target_pos(void)
+{
+    return g_motor_state.target_position;
+}
+
+int32_t motor_get_current_pos(void)
+{
+    return g_motor_state.current_position;
+}
 
 /*
  * MOTOR FUNCTIONS
@@ -41,6 +64,12 @@ static motor_state_t g_motor_state = {
 void motor_init(timers_state_t * timers_state)
 {
     g_timers_state = timers_state;
+
+    /* register our CLI command */
+    CLI_REGISTER(
+            "target",
+            "target <degrees>: tell the motor to move to position <degrees> (may be negative)",
+            clicmd_target_handler);
 
     /* setup encoder (only 1 motor - motor 2) */
     encoders_init(IO_D3, IO_D2, IO_D1, IO_D0);
@@ -115,5 +144,5 @@ void motor_service_pd_controller(void)
         (PROPORTIONAL_GAIN * (target_position - current_position) -
                 DERIVATIVE_GAIN * current_velocity);
     /* update the output value */
-    set_motors(0, torque);
+    set_motors(0, MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
 }

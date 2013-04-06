@@ -20,5 +20,7 @@ typedef struct {
 void motor_init(timers_state_t * timers_state);
 void motor_service_pd_controller(void);
 void motor_drive(void);
+int32_t motor_get_target_pos(void);
+int32_t motor_get_current_pos(void);
 
 #endif /* MOTOR_H_ */

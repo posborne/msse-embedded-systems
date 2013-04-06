@@ -9,23 +9,26 @@
 #include "log.h"
 #include "motor.h"
 #include "scheduler.h"
+#include "cli.h"
 
 #define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
+
+#define CUSTOM_SYMBOL_DEGREE (3)
+static const char degree_symbol[] PROGMEM = {
+        0b00110,
+        0b01001,
+        0b00110,
+        0b00000,
+        0b00000,
+        0b00000,
+        0b00000,
+        0b00000
+};
+
 
 static timers_state_t g_timers_state = {
         .ms_ticks = 0,
 };
-
-/*
- * TASK: Logs Service
- *
- * Periodically tell the serial port to handle input/output
- */
-static void
-service_logs(void)
-{
-    serial_check();
-}
 
 /*
  * TASK: Update LCD
@@ -37,14 +40,36 @@ update_lcd(void)
 {
     char buf[128];
     clear();
-    sprintf(buf, "ticks: %lu", g_timers_state.ms_ticks);
+    lcd_goto_xy(0, 0);
+    /* Print target degrees */
+    sprintf(buf, "t:%ld", motor_get_target_pos());
     print(buf);
+    lcd_goto_xy(strlen(buf), 0);
+    print_character(CUSTOM_SYMBOL_DEGREE);
+
+    /* print current degrees */
+    lcd_goto_xy(0, 1);
+    sprintf(buf, "c:%ld", motor_get_current_pos());
+    print(buf);
+    lcd_goto_xy(strlen(buf), 1);
+    print_character(CUSTOM_SYMBOL_DEGREE);
+}
+
+/*
+ * Task: Service CLI
+ *
+ * Check for new bytes and process them
+ */
+static void
+service_cli(void)
+{
+    cli_service();
 }
 
 static task_t g_tasks[] = {
-    {"Serial Check", 1 /* ms */, service_logs},
-    {"Update LCD", 250 /* ms */, update_lcd},
-    {"Service PD Controller", 5 /* ms */, motor_service_pd_controller},
+    {"Update LCD", 100 /* ms */, update_lcd},
+    {"Service CLI", 50 /* ms */, service_cli},
+    {"Service PD Controller", 25 /* ms */, motor_service_pd_controller},
 };
 
 /*
@@ -68,6 +93,9 @@ int main()
     timers_setup_timer(TIMER_COUNTER0, TIMER_MODE_CTC, 1000UL);
     TIMSK0 |= (1 << OCIE0A);
 
+    lcd_load_custom_character(degree_symbol, CUSTOM_SYMBOL_DEGREE);
+
+    cli_init();
     motor_init(&g_timers_state);
     log_init();
 	scheduler_init(&g_timers_state, g_tasks, COUNT_OF(g_tasks));
@@ -75,6 +103,11 @@ int main()
 
 	/* Main Loop: Run Tasks scheduled by scheduler */
 	while (1) {
+	    int i;
+	    for (i = 0; i < 5; i++) {
+	        serial_check(); /* needs to be called frequently */
+	    }
 	    scheduler_service();
+
 	}
 }
