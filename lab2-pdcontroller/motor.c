@@ -1,6 +1,7 @@
 #include <pololu/orangutan.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include "log.h"
@@ -48,6 +49,34 @@ static int clicmd_target_handler(char const * const args)
     return 0;
 }
 
+
+/*
+ * Driver the motor at the specified torque value
+ *
+ * The desired direction is indicated by the sign of torque
+ * and the value should be in the range {-255, 255}.  It is
+ * assumed that the motor is attached to the module's
+ * motor2 port which uses the following registers:
+ *  - OC2B: PWM Signal
+ *  - PC6:  Direction
+ *
+ * We will use fast PWM mode (bit easier to work with).  To
+ * change our duty cycle, we change the top value for the
+ * output compare match.
+ */
+static void motor_set_output(int16_t torque)
+{
+	uint8_t abs_torque = abs(torque);
+	// set direction
+	if (torque < 0) {
+		PORTC &= ~(1 << PC6);
+	} else {
+		PORTC |= (1 << PC6);
+	}
+	OCR2B = abs_torque;
+	OCR2A = 0;
+}
+
 int32_t motor_get_target_pos(void)
 {
     return g_motor_state.target_position;
@@ -64,6 +93,12 @@ int32_t motor_get_current_pos(void)
 void motor_init(timers_state_t * timers_state)
 {
     g_timers_state = timers_state;
+
+    /* Setup registers for PWM */
+    DDRC |= (1 << PC6);
+    DDRD |= (1 << PD6);
+    TCCR2A |= (1 << COM2A1 | 1 << WGM21 | 1 << WGM20); /* Fast PWM */
+    TCCR2B |= (1 << CS22 | 1 << WGM22); /* clock divider: 64 */
 
     /* register our CLI command */
     CLI_REGISTER(
@@ -144,5 +179,8 @@ void motor_service_pd_controller(void)
         (PROPORTIONAL_GAIN * (target_position - current_position) -
                 DERIVATIVE_GAIN * current_velocity);
     /* update the output value */
-    set_motors(0, MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
+    (void)(torque);
+	motor_set_output(128);
+    //motor_set_output(MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
+    //set_motors(0, MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
 }
