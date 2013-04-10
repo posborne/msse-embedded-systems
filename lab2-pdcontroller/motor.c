@@ -89,7 +89,13 @@ static int clicmd_toggle_logging(char const * const args)
 static int clicmd_view_parameters(char const * const args)
 {
     (void)(args);
-    /* TODO */
+    LOG("Kd=%d, Kp=%d, Vm=%d, Pr=%ld, Pm=%ld, T=%d\r\n",
+            g_motor_state.derivative_gain,
+            g_motor_state.proportional_gain,
+            g_motor_state.current_velocity,
+            g_motor_state.target_position,
+            g_motor_state.current_position,
+            g_motor_state.last_torque);
     return 0;
 }
 
