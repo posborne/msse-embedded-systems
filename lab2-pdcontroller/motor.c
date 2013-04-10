@@ -34,8 +34,12 @@ static motor_state_t g_motor_state = {
     .proportional_gain = (3 * COEFFICIENT_SCALAR),
     .derivative_gain = (1 * COEFFICIENT_SCALAR),
     .last_torque = 0,
-    .logging_enabled = false
+    .logging_enabled = false,
+    .poll_rate = SERVICE_RATE_50HZ
 };
+
+/* Prototypes */
+void motor_service_pd_controller(void);
 
 /*
  * Usage: r <degrees:int>
@@ -44,7 +48,7 @@ static int clicmd_set_reference(char const * const args)
 {
     int32_t target_degrees;
     if (1 == sscanf(args, "%ld", &target_degrees)) {
-        g_motor_state.target_position = target_degrees;
+        g_motor_state.target_position = (int32_t)target_degrees;
     }
     return 0;
 }
@@ -89,12 +93,13 @@ static int clicmd_toggle_logging(char const * const args)
 static int clicmd_view_parameters(char const * const args)
 {
     (void)(args);
-    LOG("Kd=%d, Kp=%d, Vm=%d, Pr=%ld, Pm=%ld, T=%d\r\n",
+    LOG("Kd=%d, Kp=%d, ",
             g_motor_state.derivative_gain,
-            g_motor_state.proportional_gain,
+            g_motor_state.proportional_gain);
+    LOG("Vm=%ld, Pr=%ld, Pm=%ld, T=%d\r\n",
             g_motor_state.current_velocity,
-            g_motor_state.target_position,
-            g_motor_state.current_position,
+            motor_get_target_pos(),
+            motor_get_current_pos(),
             g_motor_state.last_torque);
     return 0;
 }
@@ -305,6 +310,20 @@ void motor_init(timers_state_t * timers_state)
         {"d-", "d- <degrees>: Decrease Kd by the specified amount",
          clicmd_decrease_kd}
     );
+}
+
+void motor_service_pd_controller_5hz(void)
+{
+    if (g_motor_state.poll_rate == SERVICE_RATE_5HZ) {
+        motor_service_pd_controller();
+    }
+}
+
+void motor_service_pd_controller_50hz(void)
+{
+    if (g_motor_state.poll_rate == SERVICE_RATE_50HZ) {
+        motor_service_pd_controller();
+    }
 }
 
 /*

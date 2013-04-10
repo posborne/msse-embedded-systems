@@ -74,7 +74,8 @@ static task_t g_tasks[] = {
     {"Update LCD", 100 /* ms */, update_lcd},
     {"Service CLI", 50 /* ms */, service_cli},
     {"Log Motor State", 50 /* ms */, motor_log_state},
-    {"Service PD Controller", 25 /* ms */, motor_service_pd_controller},
+    {"Service PD (5Hz)", 200 /* ms */, motor_service_pd_controller_5hz},
+    {"Service PD (50Hz)", 20 /* ms */, motor_service_pd_controller_50hz},
 };
 
 /*
