@@ -6,7 +6,7 @@
 #ifndef __MENU_H
 #define __MENU_H
 
-#include <inttypes.h> //gives us uintX_t
+#include <inttypes.h>
 
 #define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 typedef int (*cli_command_handler_t)(char const * const args);
@@ -22,7 +22,10 @@ int cli_service(void);
 void cli_register(cli_command_t command);
 
 #define CLI_REGISTER(...) do { \
-    static cli_command_t _cmd_ = {__VA_ARGS__}; \
-    cli_register(_cmd_); } while (0)
+    int i; \
+    static cli_command_t _cmds_[] = {__VA_ARGS__}; \
+    for (i = 0; i < COUNT_OF(_cmds_);  i++) \
+        cli_register(_cmds_[i]); \
+    } while (0)
 
 #endif //__MENU_H

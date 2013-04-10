@@ -39,20 +39,24 @@ static void
 update_lcd(void)
 {
     char buf[128];
+    char tmp[8];
     clear();
     lcd_goto_xy(0, 0);
-    /* Print target degrees */
-    sprintf(buf, "t:%ld", motor_get_target_pos());
+
+    /* Print target/actual degrees */
+    sprintf(buf, "(%-5ld , %-5ld )", motor_get_target_pos(), motor_get_current_pos());
     print(buf);
-    lcd_goto_xy(strlen(buf), 0);
+    sprintf(tmp, "%ld", motor_get_target_pos());
+    lcd_goto_xy(1 + strlen(tmp), 0);
+    print_character(CUSTOM_SYMBOL_DEGREE);
+    sprintf(tmp, "%ld", motor_get_current_pos());
+    lcd_goto_xy(9 + strlen(tmp), 0);
     print_character(CUSTOM_SYMBOL_DEGREE);
 
-    /* print current degrees */
+    /* Print last torque value */
     lcd_goto_xy(0, 1);
-    sprintf(buf, "c:%ld", motor_get_current_pos());
+    sprintf(buf, "torque: %d", motor_get_last_torque());
     print(buf);
-    lcd_goto_xy(strlen(buf), 1);
-    print_character(CUSTOM_SYMBOL_DEGREE);
 }
 
 /*
@@ -86,7 +90,6 @@ ISR(TIMER0_COMPA_vect)
  */
 int main()
 {
-
     LOG("--------------------------------\r\n");
 
     /* Unmask interrupt for output compare match A on TC0 */

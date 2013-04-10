@@ -7,7 +7,7 @@
 #include "log.h"
 #include "cli.h"
 
-#define MAX_CLI_COMMANDS (10)
+#define MAX_CLI_COMMANDS (20)
 #define UNUSED_PARAMETER(x) (void)(x)
 
 typedef struct {
@@ -22,6 +22,11 @@ typedef struct {
     int number_commands;
 } cli_commands_t;
 
+typedef struct {
+    cli_command_t * command;
+    char args[32];
+} cli_command_and_args_t;
+
 static receive_buffer_t g_receive_buffer = {
         .ring_buffer_position = 0,
         .command_buffer_length = 0
@@ -32,6 +37,15 @@ static cli_commands_t cli_commands = {
         .number_commands = 0
 };
 
+static cli_command_and_args_t last_command = {
+        .command = NULL
+};
+
+/*
+ * Usage: ?
+ *
+ * Show all the cli commands with descriptions that have been registered.
+ */
 static int clicmd_show_commands(char const * const command)
 {
     int i;
@@ -41,7 +55,7 @@ static int clicmd_show_commands(char const * const command)
     LOG("Available Commands:\r\n");
     for (i = 0; i < cli_commands.number_commands; i++) {
         cli_command_t cmd = cli_commands.commands[i];
-        LOG("%s - %s\r\n", cmd.command, cmd.description);
+        LOG("%-5s| %s\r\n", cmd.command, cmd.description);
     }
     return 0;
 }
@@ -78,7 +92,13 @@ static void cli_process_command(char const * const command)
         cli_command_t * command = &cli_commands.commands[i];
         if (root_command_length && strncmp(command->command, root_command, root_command_length) == 0) {
             matching_command = command;
+            last_command.command = command;
+            strcpy(&last_command.args[0], remaining_arguments);
             break;
+        } else if (root_command_length == 0) {
+            /* do repeat last command */
+            matching_command = last_command.command;
+            remaining_arguments = &last_command.args[0];
         }
     }
 
@@ -104,7 +124,7 @@ int cli_init(void)
             sizeof(g_receive_buffer.ring_buffer));
     LOG("USB Serial Initialized\r\n");
     LOG("#> ");
-    CLI_REGISTER("?", "Show Commands", clicmd_show_commands);
+    CLI_REGISTER({"?", "Show Commands", clicmd_show_commands});
     return 0;
 }
 

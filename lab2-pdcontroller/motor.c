@@ -15,11 +15,7 @@
 #define NUMBER_DARK_REGIONS          (32)
 #define NUMBER_TRANSTIONS_REVOLUTION (NUMBER_DARK_REGIONS * 2)
 #define MAX_TORQUE                   (255)
-
-/* Kp - The 'P' in PD */
-#define PROPORTIONAL_GAIN (3)
-/* Kd  - The 'D' in PD */
-#define DERIVATIVE_GAIN   (1)
+#define COEFFICIENT_SCALAR           (1000)
 
 /*
  * MACROS
@@ -34,13 +30,17 @@ static motor_state_t g_motor_state = {
     .current_position = 0,
     .target_position = 0,
     .current_velocity = 0,
-    .last_position_change_ms = 0
+    .last_position_change_ms = 0,
+    .proportional_gain = (3 * COEFFICIENT_SCALAR),
+    .derivative_gain = (1 * COEFFICIENT_SCALAR),
+    .last_torque = 0,
+    .logging_enabled = false
 };
 
 /*
- * Usage: target <degrees:int>
+ * Usage: r <degrees:int>
  */
-static int clicmd_target_handler(char const * const args)
+static int clicmd_set_reference(char const * const args)
 {
     int32_t target_degrees;
     if (1 == sscanf(args, "%ld", &target_degrees)) {
@@ -49,6 +49,121 @@ static int clicmd_target_handler(char const * const args)
     return 0;
 }
 
+/*
+ * Usage: r+ <degrees:int>
+ */
+static int clicmd_increase_reference(char const * const args)
+{
+    int32_t degrees_delta;
+    if (1 == sscanf(args, "%ld", &degrees_delta)) {
+        g_motor_state.target_position += degrees_delta;
+    }
+    return 0;
+}
+
+/*
+ * Usage: r- <degrees:int>
+ */
+static int clicmd_decrease_reference(char const * const args)
+{
+    int32_t degrees_delta;
+    if (1 == sscanf(args, "%ld", &degrees_delta)) {
+        g_motor_state.target_position -= degrees_delta;
+    }
+    return 0;
+}
+
+/*
+ * Usage: l
+ */
+static int clicmd_toggle_logging(char const * const args)
+{
+    (void)(args);
+    g_motor_state.logging_enabled = g_motor_state.logging_enabled ? false : true;
+    return 0;
+}
+
+/*
+ * Usage: v
+ */
+static int clicmd_view_parameters(char const * const args)
+{
+    (void)(args);
+    /* TODO */
+    return 0;
+}
+
+/*
+ * Usage: p <int:Kp value>
+ */
+static int clicmd_set_kp(char const * const args)
+{
+    int32_t kp;
+    if (1 == sscanf(args, "%ld", &kp)) {
+        g_motor_state.proportional_gain = kp;
+    }
+    return 0;
+}
+
+/*
+ * Usage: p+ <int:Kp delta>
+ */
+static int clicmd_increase_kp(char const * const args)
+{
+    int32_t kp_delta;
+    if (1 == sscanf(args, "%ld", &kp_delta)) {
+        g_motor_state.proportional_gain += kp_delta;
+    }
+    return 0;
+}
+
+/*
+ * Usage: p- <int:Kp delta>
+ */
+static int clicmd_decrease_kp(char const * const args)
+{
+    int32_t kp_delta;
+    if (1 == sscanf(args, "%ld", &kp_delta)) {
+        g_motor_state.proportional_gain -= kp_delta;
+    }
+    return 0;
+}
+
+/*
+ * Usage: d <int:Kd value>
+ */
+static int clicmd_set_kd(char const * const args)
+{
+    int32_t kd;
+    if (1 == sscanf(args, "%ld", &kd)) {
+        g_motor_state.derivative_gain = kd;
+    }
+    return 0;
+}
+
+/*
+ * Usage: d+ <int:Kd delta>
+ */
+static int clicmd_increase_kd(char const * const args)
+{
+    int32_t kd_delta;
+    if (1 == sscanf(args, "%ld", &kd_delta)) {
+        g_motor_state.derivative_gain += kd_delta;
+    }
+    return 0;
+}
+
+/*
+ * Usage: d- <int:Kd delta>
+ */
+static int clicmd_decrease_kd(char const * const args)
+{
+    int32_t kd_delta;
+    if (1 == sscanf(args, "%ld", &kd_delta)) {
+        g_motor_state.derivative_gain -= kd_delta;
+    }
+    return 0;
+}
 
 /*
  * Driver the motor at the specified torque value
@@ -76,14 +191,28 @@ static void motor_set_output(int16_t torque)
 	OCR2B = abs_torque;
 }
 
+/*
+ * Get the target motor position
+ */
 int32_t motor_get_target_pos(void)
 {
     return g_motor_state.target_position;
 }
 
+/*
+ * Get the current most position
+ */
 int32_t motor_get_current_pos(void)
 {
     return g_motor_state.current_position;
+}
+
+/*
+ * Get the last motor torque that was used
+ */
+int motor_get_last_torque(void)
+{
+    return g_motor_state.last_torque;
 }
 
 /*
@@ -127,11 +256,36 @@ void motor_init(timers_state_t * timers_state)
     /* Start out by not driving the motor */
     OCR2B = 0;
 
+    (void)(clicmd_toggle_logging);
+    (void)(clicmd_view_parameters);
+    (void)(clicmd_set_reference);
+    (void)(clicmd_increase_reference);
+
     /* register our CLI command */
     CLI_REGISTER(
-            "target",
-            "target <degrees>: tell the motor to move to position <degrees> (may be negative)",
-            clicmd_target_handler);
+        {"l", "toggle logging(enable/disable)",
+         clicmd_toggle_logging},
+        {"v", "View the current values of Kd, Kp, Vm, Pr, Pm, and T",
+         clicmd_view_parameters},
+        {"r", "r <degrees>: Set the reference position to degrees",
+         clicmd_set_reference},
+        {"r+", "r+ <degrees>: Increase reference position by some relative amount",
+         clicmd_increase_reference},
+        {"r-", "r- <degrees>: Decrease reference position by some relative amount",
+         clicmd_decrease_reference},
+        {"p", "p <degrees>: Set Kp to the specified value",
+         clicmd_set_kp},
+        {"p+", "p+ <degrees>: Increase Kp by the specified amount",
+         clicmd_increase_kp},
+        {"p-", "p- <degrees>: Decrease Kp by the specified amount",
+         clicmd_decrease_kp},
+        {"d", "d <degrees>: Set Kd to the specified value",
+         clicmd_set_kd},
+        {"d+", "d+ <degrees>: Increase Kd by the specified amount",
+         clicmd_increase_kd},
+        {"d-", "d- <degrees>: Decrease Kd by the specified amount",
+         clicmd_decrease_kd}
+    );
 }
 
 /*
@@ -184,7 +338,7 @@ void motor_init(timers_state_t * timers_state)
  */
 void motor_service_pd_controller(void)
 {
-    int32_t position_delta;
+    int32_t position_delta, torque;
     int encoder_count = encoders_get_counts_m2();
     int32_t current_position = (int32_t)(360 * ((double)encoder_count / NUMBER_TRANSTIONS_REVOLUTION));
     uint32_t now_ms = g_timers_state->ms_ticks;
@@ -196,9 +350,10 @@ void motor_service_pd_controller(void)
 
     int32_t target_position = g_motor_state.target_position;
     int current_velocity = g_motor_state.current_velocity;
-    int torque =
-        (PROPORTIONAL_GAIN * (target_position - current_position) -
-                DERIVATIVE_GAIN * current_velocity);
+    torque =
+        (g_motor_state.proportional_gain * (target_position - current_position) / COEFFICIENT_SCALAR) -
+        (g_motor_state.derivative_gain * current_velocity / COEFFICIENT_SCALAR);
     /* update the output value */
-    motor_set_output(MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
+    g_motor_state.last_torque = MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE);
+    motor_set_output(g_motor_state.last_torque);
 }
