@@ -32,5 +32,6 @@ void motor_drive(void);
 int32_t motor_get_target_pos(void);
 int32_t motor_get_current_pos(void);
 int motor_get_last_torque(void);
+void motor_log_state(void);
 
 #endif /* MOTOR_H_ */

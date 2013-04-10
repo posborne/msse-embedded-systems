@@ -111,7 +111,7 @@ static void cli_process_command(char const * const command)
 }
 
 /*
- * Initiailize the menuing system
+ * Initialize the menuing system
  */
 int cli_init(void)
 {

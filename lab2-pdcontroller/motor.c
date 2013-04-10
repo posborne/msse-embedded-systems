@@ -216,6 +216,19 @@ int motor_get_last_torque(void)
 }
 
 /*
+ * Log the motor state (if enabled)
+ */
+void motor_log_state(void)
+{
+    if (g_motor_state.logging_enabled) {
+        LOG("%ld,%ld,%d\r\n",
+            g_motor_state.target_position,
+            g_motor_state.current_position,
+            g_motor_state.last_torque);
+    }
+}
+
+/*
  * MOTOR FUNCTIONS
  */
 void motor_init(timers_state_t * timers_state)
