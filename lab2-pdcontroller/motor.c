@@ -17,9 +17,9 @@
 #define MAX_TORQUE                   (255)
 
 /* Kp - The 'P' in PD */
-#define PROPORTIONAL_GAIN (2)
+#define PROPORTIONAL_GAIN (3)
 /* Kd  - The 'D' in PD */
-#define DERIVATIVE_GAIN   (5)
+#define DERIVATIVE_GAIN   (1)
 
 /*
  * MACROS
@@ -32,7 +32,7 @@ static timers_state_t * g_timers_state;
 static motor_state_t g_motor_state = {
     .current_torque = 0,
     .current_position = 0,
-    .target_position = 1080,
+    .target_position = 0,
     .current_velocity = 0,
     .last_position_change_ms = 0
 };
@@ -74,7 +74,6 @@ static void motor_set_output(int16_t torque)
 		PORTC |= (1 << PC6);
 	}
 	OCR2B = abs_torque;
-	OCR2A = 0;
 }
 
 int32_t motor_get_target_pos(void)
@@ -94,23 +93,45 @@ void motor_init(timers_state_t * timers_state)
 {
     g_timers_state = timers_state;
 
-    /* Setup registers for PWM */
+    /* setup encoder (only 1 motor - motor 2) */
+    encoders_init(IO_D3, IO_D2, IO_D1, IO_D0);
+
+    /* reset counters */
+    encoders_get_counts_and_reset_m2();
+
+    /* Setup PC6 (direction) and PD6 (PWM) as outputs */
     DDRC |= (1 << PC6);
     DDRD |= (1 << PD6);
-    TCCR2A |= (1 << COM2A1 | 1 << WGM21 | 1 << WGM20); /* Fast PWM */
-    TCCR2B |= (1 << CS22 | 1 << WGM22); /* clock divider: 64 */
+
+    /* We are using Fast PWM for the mode and we want to be able
+     * put a PWM signal on OC2B at some frequency */
+
+    /* COM2A1 = 0, COM2A0 = 0; OC2A disconnected (PB3) */
+    TCCR2A &= ~(1 << COM2A1 | 1 << COM2A0);
+
+    /* Clear OC2B on Compare Match, set OC2B at BOTTOM, (non-inverting mode). */
+    TCCR2A |=  (1 << COM2B1);
+    TCCR2A &= ~(1 << COM2B0);
+
+    /* Waveform Generation Mode: Fast PWM
+     *
+     * TOP = 0xFF, Update of OCRx at BOTTOM, TOV Flag Set on MAX
+     */
+    TCCR2A |=  (1 << WGM21 | 1 << WGM20);
+    TCCR2B &= ~(1 << WGM22);
+
+    /* Clock Select: prescaler of 64 */
+    TCCR2B &= ~(1 << CS21 | 1 << CS20);
+    TCCR2B |=  (1 << CS22);
+
+    /* Start out by not driving the motor */
+    OCR2B = 0;
 
     /* register our CLI command */
     CLI_REGISTER(
             "target",
             "target <degrees>: tell the motor to move to position <degrees> (may be negative)",
             clicmd_target_handler);
-
-    /* setup encoder (only 1 motor - motor 2) */
-    encoders_init(IO_D3, IO_D2, IO_D1, IO_D0);
-
-    /* reset counters */
-    encoders_get_counts_and_reset_m2();
 }
 
 /*
@@ -179,8 +200,5 @@ void motor_service_pd_controller(void)
         (PROPORTIONAL_GAIN * (target_position - current_position) -
                 DERIVATIVE_GAIN * current_velocity);
     /* update the output value */
-    (void)(torque);
-	motor_set_output(128);
-    //motor_set_output(MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
-    //set_motors(0, MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
+    motor_set_output(MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE));
 }
