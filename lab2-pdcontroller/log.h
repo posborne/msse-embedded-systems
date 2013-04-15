@@ -18,7 +18,7 @@ typedef enum {
 #define LOG_CRITICAL(args...)  (log_message(LVL_CRITICAL, ##args))
 
 #ifndef LOG_BUFFER_SIZE
-#define LOG_BUFFER_SIZE (256)
+#define LOG_BUFFER_SIZE (100)
 #endif
 
 typedef struct {
@@ -27,5 +27,6 @@ typedef struct {
 } log_serial_state_t;
 void log_init();
 void log_message(log_level_e lvl, char *fmt, ...);
+void log_service(void);
 
 #endif

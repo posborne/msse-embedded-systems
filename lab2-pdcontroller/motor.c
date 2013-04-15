@@ -5,21 +5,17 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "log.h"
-#include "motor.h"
 #include "cli.h"
+#include "interpolator.h"
+#include "motor.h"
 
 /*
  * CONSTANTS
  */
-#define DEFAULT_MOTOR_SPEED          (100)
-#define NUMBER_DARK_REGIONS          (32)
-#define NUMBER_TRANSTIONS_REVOLUTION (NUMBER_DARK_REGIONS * 2)
-#define MAX_TORQUE                   (255)
-#define COEFFICIENT_SCALAR           (1000)
+#define MAX_TORQUE         (255)
+#define COEFFICIENT_SCALAR (1000)
 
-/*
- * MACROS
- */
+/* MACROS */
 #define MIN(a, b)     (a < b ? a : b)
 #define MAX(a, b)     (a > b ? a : b)
 
@@ -27,19 +23,12 @@
 static timers_state_t * g_timers_state;
 static motor_state_t g_motor_state = {
     .current_torque = 0,
-    .current_position = 0,
-    .target_position = 0,
-    .current_velocity = 0,
-    .last_position_change_ms = 0,
     .proportional_gain = (3 * COEFFICIENT_SCALAR),
     .derivative_gain = (1 * COEFFICIENT_SCALAR),
     .last_torque = 0,
     .logging_enabled = false,
     .poll_rate = SERVICE_RATE_50HZ
 };
-
-/* Prototypes */
-void motor_service_pd_controller(void);
 
 /*
  * Usage: r <degrees:int>
@@ -48,7 +37,7 @@ static int clicmd_set_reference(char const * const args)
 {
     int32_t target_degrees;
     if (1 == sscanf(args, "%ld", &target_degrees)) {
-        g_motor_state.target_position = (int32_t)target_degrees;
+        interpolator_add_target_position(target_degrees);
     }
     return 0;
 }
@@ -280,11 +269,6 @@ void motor_init(timers_state_t * timers_state)
     /* Start out by not driving the motor */
     OCR2B = 0;
 
-    (void)(clicmd_toggle_logging);
-    (void)(clicmd_view_parameters);
-    (void)(clicmd_set_reference);
-    (void)(clicmd_increase_reference);
-
     /* register our CLI command */
     CLI_REGISTER(
         {"l", "toggle logging(enable/disable)",
@@ -315,7 +299,7 @@ void motor_init(timers_state_t * timers_state)
 void motor_service_pd_controller_5hz(void)
 {
     if (g_motor_state.poll_rate == SERVICE_RATE_5HZ) {
-        motor_service_pd_controller();
+    	motor_service_pd_controller();
     }
 }
 
@@ -377,16 +361,15 @@ void motor_service_pd_controller_50hz(void)
 void motor_service_pd_controller(void)
 {
     int32_t position_delta, torque;
-    int encoder_count = encoders_get_counts_m2();
-    int32_t current_position = (int32_t)(360 * ((double)encoder_count / NUMBER_TRANSTIONS_REVOLUTION));
-    uint32_t now_ms = g_timers_state->ms_ticks;
+    int32_t target_position = interpolator_get_target_position();
+    int32_t current_position = interpolator_get_current_position();
     if ((position_delta = current_position - g_motor_state.current_position) != 0) {
         int32_t time_delta = now_ms - g_motor_state.last_position_change_ms;
         g_motor_state.current_velocity = position_delta / time_delta;
         g_motor_state.current_position = current_position;
     }
 
-    int32_t target_position = g_motor_state.target_position;
+    int32_t target_position = interpolator_get_target_position();
     int current_velocity = g_motor_state.current_velocity;
     torque =
         (g_motor_state.proportional_gain * (target_position - current_position) / COEFFICIENT_SCALAR) -

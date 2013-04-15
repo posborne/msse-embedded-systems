@@ -13,14 +13,6 @@ typedef enum {
 typedef struct {
     /* The last torque value used to drive the motor */
     uint8_t current_torque;
-    /* The current position in degrees (based on encoder) */
-    int32_t current_position;
-    /* The target position in degrees */
-    int32_t target_position;
-    /* The current estimate velocity in degrees/second */
-    int32_t current_velocity;
-    /* for tracking velocity */
-    uint32_t last_position_change_ms;
     /* Kp - The 'P' in PD (0.01/bit) */
     int16_t proportional_gain;
     /* Kp - The 'P' in PD (0.01/bit) */

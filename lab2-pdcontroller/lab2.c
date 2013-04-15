@@ -73,6 +73,7 @@ service_cli(void)
 static task_t g_tasks[] = {
     {"Update LCD", 100 /* ms */, update_lcd},
     {"Service CLI", 50 /* ms */, service_cli},
+    {"Service Logs", 50 /* ms */, log_service},
     {"Log Motor State", 50 /* ms */, motor_log_state},
     {"Service PD (5Hz)", 200 /* ms */, motor_service_pd_controller_5hz},
     {"Service PD (50Hz)", 20 /* ms */, motor_service_pd_controller_50hz},
@@ -108,10 +109,7 @@ int main()
 
 	/* Main Loop: Run Tasks scheduled by scheduler */
 	while (1) {
-	    int i;
-	    for (i = 0; i < 5; i++) {
-	        serial_check(); /* needs to be called frequently */
-	    }
+		serial_check(); /* needs to be called frequently */
 	    scheduler_service();
 
 	}

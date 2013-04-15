@@ -1,10 +1,8 @@
-/*******************************************
-*
-* Header file for menu stuff.
-*
-*******************************************/
-#ifndef __MENU_H
-#define __MENU_H
+/*
+ * Header file for CLI stuff
+ */
+#ifndef __CLI_H
+#define __CLI_H
 
 #include <inttypes.h>
 
@@ -28,4 +26,4 @@ void cli_register(cli_command_t command);
         cli_register(_cmds_[i]); \
     } while (0)
 
-#endif //__MENU_H
+#endif //__CLI_H
