@@ -80,7 +80,7 @@ static task_t g_tasks[] = {
     {"Log Motor State", 50 /* ms */, motor_log_state},
     {"Service PD (5Hz)", 200 /* ms */, motor_service_pd_controller_5hz},
     {"Service PD (50Hz)", 20 /* ms */, motor_service_pd_controller_50hz},
-    {"Server Interp", 50 /* ms */, interpolator_service},
+    {"Service Interpolator", 50 /* ms */, interpolator_service},
     {"Calculate Velocity", VELOCITY_POLL_MS /* ms */, interpolator_service_calc_velocity}
 };
 
@@ -110,7 +110,7 @@ int main()
     motor_init(&g_timers_state);
     log_init();
 	scheduler_init(&g_timers_state, g_tasks, COUNT_OF(g_tasks));
-	interpolator_init();
+	interpolator_init(&g_timers_state);
     sei();
 
 	/* Main Loop: Run Tasks scheduled by scheduler */

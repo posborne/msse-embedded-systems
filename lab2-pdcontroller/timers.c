@@ -160,7 +160,6 @@ static timer_counter_t tc3 = {
     }
 };
 
-static timers_state_t *g_timers_state;
 static timer_counter_t * timer_counters[] = {&tc0, &tc1, &tc3};
 
 /*
@@ -204,18 +203,6 @@ static int timers_program_timer(
     timer_counter->set_divider(divisor->clock_select_flags);
     timer_counter->top_info.set_top(top);
     return 0;
-}
-
-/*
- * Get the number of milliseconds the system has been alive
- *
- * In actuality, there is a small amount time between when
- * we get power and when we start counting.  This doesn't really
- * matter in practice.
- */
-uint32_t timers_get_uptime_ms()
-{
-    return g_timers_state->ms_ticks;
 }
 
 /*

@@ -13,12 +13,20 @@
 #define MAX_DELTA                    (90)
 #define CLOSE_ENOUGH_DEGREES         (15)
 
-typedef struct {
-	int32_t position;
-} interpolator_target_t;
-static uint8_t number_targets = 0;
-static interpolator_target_t targets[10];
-static int32_t time_entered_end_zone = -1;
+typedef enum {
+    STATE_IN_ENDZONE,
+    STATE_OUT_OF_ENDZONE
+} interpolator_state_t;
+
+typedef struct _interpolator_target_node_t {
+	bool in_use;
+    int32_t position;
+	struct _interpolator_target_node_t * next;
+} interpolator_target_node_t;
+
+/* queue */
+static interpolator_target_node_t q_nodes[10];
+static interpolator_target_node_t * q_head = NULL;
 
 /* The current position in degrees (based on encoder) */
 int32_t current_position;
@@ -26,39 +34,108 @@ int32_t current_position;
 int32_t current_velocity;
 /* for tracking velocity */
 int32_t last_position;
-/* store a ref to the current target */
-interpolator_target_t * current_target = &targets[0];
+/* The time (ms) at which we entered an "endzone" */
+static uint16_t time_entered_end_zone = 0;
+static interpolator_state_t state = STATE_OUT_OF_ENDZONE;
+static timers_state_t * g_timers_state;
+
+static interpolator_target_node_t *
+q_alloc_node(void)
+{
+    int i;
+    for (i = 0; i < COUNT_OF(q_nodes); i++) {
+        if (!q_nodes[i].in_use) {
+            q_nodes[i].in_use = true;
+            return &q_nodes[i];
+        }
+    }
+    return NULL;
+}
+
+static interpolator_target_node_t *
+q_get_tail(void)
+{
+    /* tail is first node not pointing to another node */
+    interpolator_target_node_t * node = q_head;
+    if (node == NULL) {
+        return NULL;
+    }
+
+    while (node->next != NULL) {
+        node = node->next;
+    }
+    return node;
+}
+
+static int
+q_count(void)
+{
+    interpolator_target_node_t * node = q_head;
+    if (q_head == NULL) {
+        return 0;
+    } else {
+        int i = 1;
+        while ((node = node->next) != NULL) {
+            i++;
+        }
+        return i;
+    }
+}
 
 static void
-interpolator_pop_target_position(void)
+q_append(int32_t position)
 {
-	if (number_targets > 0) {
-		number_targets--;
-		current_target = &targets[number_targets];
-	}
+    interpolator_target_node_t * tail = q_get_tail();
+    interpolator_target_node_t * node = q_alloc_node();
+    node->next = NULL;
+    node->position = position;
+    if (tail == NULL) {
+        q_head = node;
+    } else {
+        tail->next = node;
+    }
+
+    LOG("q_append(%ld) -> count: %d\r\n", position, q_count());
+}
+
+static interpolator_target_node_t *
+q_dequeue(void)
+{
+    interpolator_target_node_t * orig_head = q_head;
+    if (orig_head != NULL) {
+        q_head = orig_head->next;
+        orig_head->in_use = false;
+        orig_head->next = NULL;
+    }
+
+    LOG("q_dequeue() -> count: %d\r\n", q_count());
+
+    return orig_head;
 }
 
 /*
  * Get a ptr to the current or NULL
  */
-static interpolator_target_t *
+static interpolator_target_node_t *
 interpolator_get_current_target(void)
 {
-    if (number_targets > 0) {
-        return &targets[number_targets];
-    }
-    return NULL;
+    return q_head;
 }
 
 /*
  * Initialize the linear interpolator
  */
 void
-interpolator_init(void)
+interpolator_init(timers_state_t * timers_state)
 {
     /* warm up the velocity calculation service */
+    int i;
+    g_timers_state = timers_state;
     last_position = interpolator_get_current_position();
     current_velocity = 0;
+    for (i = 0; i < COUNT_OF(q_nodes); i++) {
+        q_nodes[i].in_use = false;
+    }
 }
 
 /*
@@ -78,16 +155,28 @@ void interpolator_service_calc_velocity(void)
 void
 interpolator_service(void)
 {
-	if (number_targets > 0) {
-		if (abs(interpolator_get_target_position() - interpolator_get_current_position()) < CLOSE_ENOUGH_DEGREES) {
-			if (time_entered_end_zone < 0) {
-				time_entered_end_zone = timers_get_uptime_ms();
-			}
-			if (timers_get_uptime_ms() - time_entered_end_zone > ENDZONE_MS) {
-				time_entered_end_zone = -1;
-				interpolator_pop_target_position();
-			}
-		}
+	if (q_head != NULL) {
+	    uint32_t timedelta;
+	    uint16_t delta;
+	    switch (state) {
+	    case STATE_OUT_OF_ENDZONE:
+	        delta = abs(interpolator_get_absolute_target_position() - interpolator_get_current_position());
+	        if (delta < CLOSE_ENOUGH_DEGREES) {
+	            LOG("STATE_OUT_OF_ENDZONE -> STATE_IN_ENDZONE\r\n");
+	            time_entered_end_zone = g_timers_state->ms_ticks;
+	            state = STATE_IN_ENDZONE;
+	        }
+	        break;
+	    case STATE_IN_ENDZONE:
+	        timedelta = g_timers_state->ms_ticks - time_entered_end_zone;
+//            LOG("%u, %u, %u\r\n", g_timers_state->ms_ticks, time_entered_end_zone, timedelta);
+	        if (timedelta > ENDZONE_MS) {
+                LOG("STATE_IN_ENDZONE -> STATE_OUT_OF_ENDZONE\r\n");
+                state = STATE_OUT_OF_ENDZONE;
+                q_dequeue();
+            }
+	        break;
+	    }
 	}
 }
 
@@ -112,9 +201,7 @@ interpolator_get_current_position(void)
 void
 interpolator_add_target_position(int32_t target_position)
 {
-	if (number_targets < COUNT_OF(targets)) {
-		targets[number_targets++].position = target_position;
-	}
+    q_append(target_position);
 }
 
 /*
@@ -123,13 +210,13 @@ interpolator_add_target_position(int32_t target_position)
 int32_t
 interpolator_get_target_position(void)
 {
-    interpolator_target_t * t = interpolator_get_current_target();
+    interpolator_target_node_t * t = interpolator_get_current_target();
     if (t != NULL) {
         int32_t delta = t->position - interpolator_get_current_position();
         if (delta > MAX_DELTA) {
-            return interpolator_get_current_position() - MAX_DELTA;
-        } else if (delta < -MAX_DELTA) {
             return interpolator_get_current_position() + MAX_DELTA;
+        } else if (delta < -MAX_DELTA) {
+            return interpolator_get_current_position() - MAX_DELTA;
         } else {
             return t->position;
         }
@@ -153,7 +240,7 @@ interpolator_get_current_velocity(void)
 int32_t
 interpolator_get_absolute_target_position(void)
 {
-    interpolator_target_t * t = interpolator_get_current_target();
+    interpolator_target_node_t * t = interpolator_get_current_target();
     if (t != NULL) {
         return t->position;
     } else {
@@ -171,7 +258,7 @@ void
 interpolator_add_relative_target(int32_t degrees_delta)
 {
     /* get the last target if any, default to current position */
-    interpolator_target_t * t = interpolator_get_current_target();
+    interpolator_target_node_t * t = q_get_tail();
     if (t != NULL) {
         return interpolator_add_target_position(t->position + degrees_delta);
     } else {
