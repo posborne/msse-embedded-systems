@@ -19,6 +19,10 @@
 #define MIN(a, b)     (a < b ? a : b)
 #define MAX(a, b)     (a > b ? a : b)
 
+/* Prototypes */
+void motor_service_pd_controller(void);
+
+
 /* Globals */
 static timers_state_t * g_timers_state;
 static motor_state_t g_motor_state = {
@@ -49,7 +53,7 @@ static int clicmd_increase_reference(char const * const args)
 {
     int32_t degrees_delta;
     if (1 == sscanf(args, "%ld", &degrees_delta)) {
-        g_motor_state.target_position += degrees_delta;
+        interpolator_add_relative_target(degrees_delta);
     }
     return 0;
 }
@@ -61,7 +65,7 @@ static int clicmd_decrease_reference(char const * const args)
 {
     int32_t degrees_delta;
     if (1 == sscanf(args, "%ld", &degrees_delta)) {
-        g_motor_state.target_position -= degrees_delta;
+        interpolator_add_relative_target(-degrees_delta);
     }
     return 0;
 }
@@ -86,9 +90,9 @@ static int clicmd_view_parameters(char const * const args)
             g_motor_state.derivative_gain,
             g_motor_state.proportional_gain);
     LOG("Vm=%ld, Pr=%ld, Pm=%ld, T=%d\r\n",
-            g_motor_state.current_velocity,
-            motor_get_target_pos(),
-            motor_get_current_pos(),
+            interpolator_get_current_velocity(),
+            interpolator_get_target_position(),
+            interpolator_get_current_position(),
             g_motor_state.last_torque);
     return 0;
 }
@@ -192,22 +196,6 @@ static void motor_set_output(int16_t torque)
 }
 
 /*
- * Get the target motor position
- */
-int32_t motor_get_target_pos(void)
-{
-    return g_motor_state.target_position;
-}
-
-/*
- * Get the current most position
- */
-int32_t motor_get_current_pos(void)
-{
-    return g_motor_state.current_position;
-}
-
-/*
  * Get the last motor torque that was used
  */
 int motor_get_last_torque(void)
@@ -222,8 +210,8 @@ void motor_log_state(void)
 {
     if (g_motor_state.logging_enabled) {
         LOG("%ld,%ld,%d\r\n",
-            g_motor_state.target_position,
-            g_motor_state.current_position,
+            interpolator_get_current_position(),
+            interpolator_get_absolute_target_position(),
             g_motor_state.last_torque);
     }
 }
@@ -360,17 +348,10 @@ void motor_service_pd_controller_50hz(void)
  */
 void motor_service_pd_controller(void)
 {
-    int32_t position_delta, torque;
+    int32_t torque;
     int32_t target_position = interpolator_get_target_position();
     int32_t current_position = interpolator_get_current_position();
-    if ((position_delta = current_position - g_motor_state.current_position) != 0) {
-        int32_t time_delta = now_ms - g_motor_state.last_position_change_ms;
-        g_motor_state.current_velocity = position_delta / time_delta;
-        g_motor_state.current_position = current_position;
-    }
-
-    int32_t target_position = interpolator_get_target_position();
-    int current_velocity = g_motor_state.current_velocity;
+    int current_velocity = interpolator_get_current_velocity();
     torque =
         (g_motor_state.proportional_gain * (target_position - current_position) / COEFFICIENT_SCALAR) -
         (g_motor_state.derivative_gain * current_velocity / COEFFICIENT_SCALAR);

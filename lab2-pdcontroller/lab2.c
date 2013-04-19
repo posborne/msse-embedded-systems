@@ -10,6 +10,7 @@
 #include "motor.h"
 #include "scheduler.h"
 #include "cli.h"
+#include "interpolator.h"
 
 #define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 
@@ -44,12 +45,14 @@ update_lcd(void)
     lcd_goto_xy(0, 0);
 
     /* Print target/actual degrees */
-    sprintf(buf, "(%-5ld , %-5ld )", motor_get_target_pos(), motor_get_current_pos());
+    sprintf(buf, "(%-5ld , %-5ld )",
+            interpolator_get_absolute_target_position(),
+            interpolator_get_current_position());
     print(buf);
-    sprintf(tmp, "%ld", motor_get_target_pos());
+    sprintf(tmp, "%ld", interpolator_get_target_position());
     lcd_goto_xy(1 + strlen(tmp), 0);
     print_character(CUSTOM_SYMBOL_DEGREE);
-    sprintf(tmp, "%ld", motor_get_current_pos());
+    sprintf(tmp, "%ld", interpolator_get_current_position());
     lcd_goto_xy(9 + strlen(tmp), 0);
     print_character(CUSTOM_SYMBOL_DEGREE);
 
@@ -77,6 +80,8 @@ static task_t g_tasks[] = {
     {"Log Motor State", 50 /* ms */, motor_log_state},
     {"Service PD (5Hz)", 200 /* ms */, motor_service_pd_controller_5hz},
     {"Service PD (50Hz)", 20 /* ms */, motor_service_pd_controller_50hz},
+    {"Server Interp", 50 /* ms */, interpolator_service},
+    {"Calculate Velocity", VELOCITY_POLL_MS /* ms */, interpolator_service_calc_velocity}
 };
 
 /*
@@ -105,6 +110,7 @@ int main()
     motor_init(&g_timers_state);
     log_init();
 	scheduler_init(&g_timers_state, g_tasks, COUNT_OF(g_tasks));
+	interpolator_init();
     sei();
 
 	/* Main Loop: Run Tasks scheduled by scheduler */

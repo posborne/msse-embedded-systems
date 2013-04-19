@@ -5,8 +5,8 @@
 #define __CLI_H
 
 #include <inttypes.h>
+#include "macros.h"
 
-#define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 typedef int (*cli_command_handler_t)(char const * const args);
 
 typedef struct {
