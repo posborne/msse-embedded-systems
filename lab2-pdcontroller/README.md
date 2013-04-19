@@ -150,7 +150,43 @@ addresses the following:
  3. Using your optimally tuned values for the PD controller running at
     1kHz, graph Pm, Pr and T while executing the trajectory: rotate
     the motor forward 360 degrees, hold for .5 seconds, then rotate
-    backwards for 360 degrees, hold for .5 seconds, rotateforwards for
+    backwards for 360 degrees, hold for .5 seconds, rotate forwards for
     5 degrees. Be sure to graph the entire trajectory.
  4. Run your PD controller at 50Hz and 5Hz while graphing the same
     variables. Discuss the results.
+
+Lab Report
+==========
+
+### Part 1: Motor Speed
+
+> Experiment with the speed of the motor: Run your motor at full
+> speed. Modify your gains to achieve position control at that speed
+> (as best you can). Slow the motor down as much as possible. Modify
+> your gains to achieve position control. Repeat with one or two speeds
+> in between. For each, record the approximate speed in rotations per
+> second, record your equation (gains), and report on the behavior of
+> the system and your ability to control the position.
+
+### Part 2: Step Size Modifications
+
+> Change the step size to something very large (more than 2pi), and
+> try a reference position of 4pi+current_position. How does system
+> behavior differ from your tuned step size? Try tuning your
+> controller for that very large step size. What happens if you then
+> set the reference position to be very close to the current
+> position (within a few degrees)?
+
+### Part 3: Graphing of Pm, Pr, and T
+
+> Using your optimally tuned values for the PD controller running at
+> 1kHz, graph Pm, Pr and T while executing the trajectory: rotate
+> the motor forward 360 degrees, hold for .5 seconds, then rotate
+> backwards for 360 degrees, hold for .5 seconds, rotateforwards for
+> 5 degrees. Be sure to graph the entire trajectory.
+
+### Part 4: Graph Again at 50/5Hz
+
+> Run your PD controller at 50Hz and 5Hz while graphing the same
+> variables. Discuss the results.
+
