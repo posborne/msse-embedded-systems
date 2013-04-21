@@ -33,6 +33,7 @@ static motor_state_t g_motor_state = {
     .logging_enabled = false,
     .poll_rate = SERVICE_RATE_50HZ
 };
+static bool paused = false;
 
 /*
  * Usage: r <degrees:int>
@@ -123,6 +124,13 @@ static int clicmd_set_kd(char const * const args)
     return 0;
 }
 
+static int clicmd_pause(char const * const args)
+{
+    (void)(args);
+    paused = paused ? false : true;
+    return 0;
+}
+
 /*
  * Driver the motor at the specified torque value
  *
@@ -162,8 +170,9 @@ int motor_get_last_torque(void)
  */
 void motor_log_state(void)
 {
-    if (g_motor_state.logging_enabled) {
-        LOG("%ld,%ld,%d\r\n",
+    if (!paused && g_motor_state.logging_enabled) {
+        LOG("%lu,%ld,%ld,%d\r\n",
+            g_timers_state->ms_ticks,
             interpolator_get_current_position(),
             interpolator_get_absolute_target_position(),
             g_motor_state.last_torque);
@@ -227,21 +236,9 @@ void motor_init(timers_state_t * timers_state)
          clicmd_set_kp},
         {"d", "d <degrees>: Set Kd to the specified value",
          clicmd_set_kd},
+        {"pause", "pause/unpause",
+         clicmd_pause}
     );
-}
-
-void motor_service_pd_controller_5hz(void)
-{
-    if (g_motor_state.poll_rate == SERVICE_RATE_5HZ) {
-    	motor_service_pd_controller();
-    }
-}
-
-void motor_service_pd_controller_50hz(void)
-{
-    if (g_motor_state.poll_rate == SERVICE_RATE_50HZ) {
-        motor_service_pd_controller();
-    }
 }
 
 /*
@@ -294,14 +291,16 @@ void motor_service_pd_controller_50hz(void)
  */
 void motor_service_pd_controller(void)
 {
-    int32_t torque;
-    int32_t target_position = interpolator_get_target_position();
-    int32_t current_position = interpolator_get_current_position();
-    int current_velocity = interpolator_get_current_velocity();
-    torque =
-        (g_motor_state.proportional_gain * (target_position - current_position) / COEFFICIENT_SCALAR) -
-        (g_motor_state.derivative_gain * current_velocity / COEFFICIENT_SCALAR);
-    /* update the output value */
-    g_motor_state.last_torque = MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE);
-    motor_set_output(g_motor_state.last_torque);
+    if (!paused) {
+        int32_t torque;
+        int32_t target_position = interpolator_get_target_position();
+        int32_t current_position = interpolator_get_current_position();
+        int current_velocity = interpolator_get_current_velocity();
+        torque =
+            (g_motor_state.proportional_gain * (target_position - current_position) / COEFFICIENT_SCALAR) -
+            (g_motor_state.derivative_gain * current_velocity / COEFFICIENT_SCALAR);
+        /* update the output value */
+        g_motor_state.last_torque = MAX(MIN(torque, MAX_TORQUE), -MAX_TORQUE);
+        motor_set_output(g_motor_state.last_torque);
+    }
 }

@@ -7,7 +7,8 @@
 
 typedef enum {
     SERVICE_RATE_5HZ,
-    SERVICE_RATE_50HZ
+    SERVICE_RATE_50HZ,
+    SERVICE_RATE_1000HZ
 } pd_controller_poll_state_e;
 
 typedef struct {
@@ -26,8 +27,7 @@ typedef struct {
 } motor_state_t;
 
 void motor_init(timers_state_t * timers_state);
-void motor_service_pd_controller_5hz(void);
-void motor_service_pd_controller_50hz(void);
+void motor_service_pd_controller(void);
 void motor_drive(void);
 int32_t motor_get_target_pos(void);
 int32_t motor_get_current_pos(void);

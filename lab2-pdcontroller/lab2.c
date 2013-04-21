@@ -14,6 +14,13 @@
 
 #define COUNT_OF(x)   ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 
+// 1Khz
+//#define PD_SERVICE_MS (1)
+// 50Hz
+#define PD_SERVICE_MS (20)
+// 5hz
+//#define PD_SERVICE_MS (200)
+
 #define CUSTOM_SYMBOL_DEGREE (3)
 static const char degree_symbol[] PROGMEM = {
         0b00110,
@@ -78,9 +85,8 @@ static task_t g_tasks[] = {
     {"Service CLI", 50 /* ms */, service_cli},
     {"Service Logs", 50 /* ms */, log_service},
     {"Log Motor State", 50 /* ms */, motor_log_state},
-    {"Service PD (5Hz)", 200 /* ms */, motor_service_pd_controller_5hz},
-    {"Service PD (50Hz)", 20 /* ms */, motor_service_pd_controller_50hz},
-    {"Service Interpolator", 50 /* ms */, interpolator_service},
+    {"Service PD (1KHz)", PD_SERVICE_MS /* ms */, motor_service_pd_controller},
+    {"Service Interpolator", PD_SERVICE_MS /* ms */, interpolator_service},
     {"Calculate Velocity", VELOCITY_POLL_MS /* ms */, interpolator_service_calc_velocity}
 };
 
@@ -117,8 +123,10 @@ int main()
 
 	/* Main Loop: Run Tasks scheduled by scheduler */
 	while (1) {
-		serial_check(); /* needs to be called frequently */
+	    int i;
+	    for (i = 0; i < 50; i++) {
+	        serial_check(); /* needs to be called frequently */
+	    }
 	    scheduler_service();
-
 	}
 }

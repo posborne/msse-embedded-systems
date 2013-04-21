@@ -9,7 +9,7 @@
 
 #define NUMBER_DARK_REGIONS          (32)
 #define NUMBER_TRANSTIONS_REVOLUTION (NUMBER_DARK_REGIONS * 2)
-#define ENDZONE_MS                   (1000)
+#define ENDZONE_MS                   (500)
 #define MAX_DELTA                    (90)
 //#define MAX_DELTA                    (720)
 #define CLOSE_ENOUGH_DEGREES         (5)

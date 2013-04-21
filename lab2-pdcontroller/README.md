@@ -360,61 +360,12 @@ experiment.  The constant for this is MAX_DELTA in interpolator.c
     1440,1440,-3
     1440,1440,0
 
-At 90 degrees, this was the result for the same test:
+At 90 degrees, this was the results looks basically the same, with
+small differences at the tail end...
 
     #> l
     #> r+ 1440
-    0,1440,0
-    5,1440,255
-    22,1440,255
-    56,1440,255
-    78,1440,255
-    101,1440,255
-    123,1440,255
-    157,1440,255
-    180,1440,255
-    208,1440,255
-    230,1440,255
-    258,1440,255
-    281,1440,255
-    315,1440,255
-    337,1440,255
-    365,1440,255
-    393,1440,255
-    416,1440,255
-    438,1440,255
-    472,1440,255
-    495,1440,255
-    517,1440,255
-    545,1440,255
-    573,1440,255
-    596,1440,255
-    630,1440,255
-    652,1440,255
-    680,1440,255
-    708,1440,255
-    731,1440,255
-    753,1440,255
-    776,1440,255
-    810,1440,255
-    832,1440,255
-    855,1440,255
-    888,1440,255
-    911,1440,255
-    939,1440,255
-    961,1440,255
-    990,1440,255
-    1012,1440,255
-    1046,1440,255
-    1068,1440,255
-    1096,1440,255
-    1119,1440,255
-    1147,1440,255
-    1170,1440,255
-    1203,1440,255
-    1226,1440,255
-    1248,1440,255
-    1271,1440,255
+    ...
     1305,1440,255
     1327,1440,255
     1355,1440,255
@@ -426,6 +377,15 @@ At 90 degrees, this was the result for the same test:
     1440,1440,-3
     1440,1440,0
 
+This makes some sense to me as the interpolator is going to be feeding a
+value 90 or greater up until the very end for both algorithms.  The p/d
+values are optimized to drive full strength when we are > 90 degrees
+away from the target.  Near the target, the two are bound to act in
+basically the same fashion.  So, that aren't really any differences
+between the two (other than keeping values in line to make computation
+a bit simpler to deal with).  If I had smaller datatypes for some stuff,
+this could result in anamalous behaviour.
+
 ### Part 3: Graphing of Pm, Pr, and T
 
 > Using your optimally tuned values for the PD controller running at
@@ -434,8 +394,58 @@ At 90 degrees, this was the result for the same test:
 > backwards for 360 degrees, hold for .5 seconds, rotateforwards for
 > 5 degrees. Be sure to graph the entire trajectory.
 
+Note that after this point, I added t (uptime in ms) to the list of
+things logged.  The source for the graphs are in graphsource-part3.csv.
+Note that the interpolator that I wrote maintains a queue of targets and
+will automatically go to the next target after it has been in the
+"endzone" (within 5 degrees) for 500ms.
+
+    #> pause
+    #> l
+    #> r+ 360
+    #> r 0
+    #> pause
+
+Full data results for this are in assets/lab2.xlsx.
+
+![Graph: 1000hz Graphs](assets/1000hz-graphs.png)
+
 ### Part 4: Graph Again at 50/5Hz
 
 > Run your PD controller at 50Hz and 5Hz while graphing the same
 > variables. Discuss the results.
+
+The results at 50Hz looked pretty similar to the results at 1Khz (note
+that for all, we log state at 50Hz).  At 5Hz, significant problems began
+to show up indicating that we are definitely not servicing the interpolator
+and pd controller frequently enough.  It is of note that there does not seem
+to be the same period of inactivity between hitting 360 and going back to
+0 that we see with the others.  This is an artifact of two things: the position
+being within the "endzone" for 500 ms and the less frequent updates to the
+pd controller.  In this run, we were close enough to be within the
+endzone, but it was clear the PD controller had not yet settled based on the
+data.
+
+![Graph: 50hz Graphs](assets/50hz-graphs.png)
+![Graph: 5hz Graphs](assets/5hz-graphs.png)
+
+Final Tweaks
+============
+
+From the previous sections data, it became clear to me that the values I
+was using for the PD controller did not do a great job of hitting small
+deltas like 5 or 15 degrees.  After some experimentation, here are the
+results with a more optimized Kp, Kd in the same experiment that we
+ended with and at 50Hz.  The change that was implemented was to increase
+Kp to 375.
+
+   #> pause
+   #> p 375
+   #> r 360
+   #> r 0
+   #> r 5
+   #> l
+   #> pause
+
+![Graph: Revised Kp](assets/revised-50hz-graphs.png)
 
