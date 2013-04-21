@@ -229,16 +229,16 @@ First, level at no motion with ref position:
 
 Now, increase p until there is motion:
 
-   #> p 100
-   #> v
-   Kd=0, Kp=100, Vm=0, Pr=15, Pm=0, T=15 (no motion)
-   #> p 200
-   #> v
-   Kd=0, Kp=100, Vm=0, Pr=15, Pm=0, T=15 (moved to position 11)
-   #> p 150
-   #> r+ 15 (target position 36)
-   #> v
-   Kd=0, Kp=150, Vm=0, Pr=22, Pm=22, T=0 (moved to position 22)
+    #> p 100
+    #> v
+    Kd=0, Kp=100, Vm=0, Pr=15, Pm=0, T=15 (no motion)
+    #> p 200
+    #> v
+    Kd=0, Kp=100, Vm=0, Pr=15, Pm=0, T=15 (moved to position 11)
+    #> p 150
+    #> r+ 15 (target position 36)
+    #> v
+    Kd=0, Kp=150, Vm=0, Pr=22, Pm=22, T=0 (moved to position 22)
 
 Here, we are seeing that with Kp ~= 150, Kd = 0, we are getting motion,
 but not enough to make it close to our desired reference position.  With
