@@ -439,13 +439,13 @@ results with a more optimized Kp, Kd in the same experiment that we
 ended with and at 50Hz.  The change that was implemented was to increase
 Kp to 375.
 
-   #> pause
-   #> p 375
-   #> r 360
-   #> r 0
-   #> r 5
-   #> l
-   #> pause
+    #> pause
+    #> p 375
+    #> r 360
+    #> r 0
+    #> r 5
+    #> l
+    #> pause
 
 ![Graph: Revised Kp](assets/revised-50hz-graphs.png)
 

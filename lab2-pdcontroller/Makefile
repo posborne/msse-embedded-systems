@@ -11,7 +11,8 @@ CC=avr-gcc
 AS=avr-as
 OBJ2HEX=avr-objcopy
 LDFLAGS=-Wl,-gc-sections -lpololu_$(DEVICE) -Wl,-relax
-PANDOC=pandoc --from markdown --to html --standalone
+PANDOC_HTML=pandoc --from markdown --to html --standalone
+PANDOC_DOCX=pandoc --from markdown --to docx
 
 PORT ?= /dev/ttyACM0
 AVRDUDE=avrdude
@@ -25,7 +26,8 @@ clean:
 	rm -f *.o *.hex *.obj *.hex
 
 docs: README.md
-	$(PANDOC) README.md > README.html
+	$(PANDOC_HTML) README.md > README.html
+	$(PANDOC_DOCX) README.md -o README.docx
 
 %.hex: $(TARGET).obj
 	$(OBJ2HEX) -R .eeprom -O ihex $< $@
