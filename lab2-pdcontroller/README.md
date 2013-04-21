@@ -158,6 +158,13 @@ addresses the following:
 Lab Report
 ==========
 
+Note:
+Unless otherwise stated, the following defaults are used in these
+experiments:
+ - step size: 90 degrees
+ - Kp: 325
+ - Kd: 50
+
 ### Part 1: Motor Speed
 
 > Experiment with the speed of the motor: Run your motor at full
@@ -167,6 +174,116 @@ Lab Report
 > in between. For each, record the approximate speed in rotations per
 > second, record your equation (gains), and report on the behavior of
 > the system and your ability to control the position.
+> 
+> Clarification:
+> Your motor has a certain range of speed - from full on to off. If you
+> limit that range (say you never allow the motor to go above half speed),
+> then you might need different gains to achieve your position. Conversely,
+> extremely small and large gains might affectively change the range of the
+> motor speed. 
+> 
+> For the experiment, essentially what I am asking is to set the gains very
+> high so that your motor command is "maxed out" even with a small error. Then
+> set your gains very low so that it is hard for it to ever "max out," despite
+> the size of the error. Test these gains with relative close and far
+> reference positions.
+> 
+> With regards to what to report, I am not looking for a "right" answer, rather
+> a report of experimenting with the gains.
+
+#### Speed: Full On
+
+Getting the motor to go full on was achieved by modifying the Kp/Kd values
+to be quite large.  The following gave "good" results where with both a 
+small and large reference position, the motor jerked around the target
+reference position at full torque.  Here this is shown for d/p at 100000
+with a ref position of 5 (from 0).
+
+    #> d 100000
+    #> p 100000
+    #> r 5
+    #> l
+    -11,5,255
+    0,5,255
+    11,5,-255
+    0,5,-255
+    -11,5,255
+    0,5,255
+    11,5,-255
+    0,5,-255
+    -11,5,255
+
+#### Speed: Low Speed
+
+For the low speed portion, I sought to find a p value such that the motor
+would make some movement toward a reference position 15 degrees away from
+the current position.
+
+First, level at no motion with ref position:
+
+    #> p 0
+    #> d 0
+    #> r+ 15
+    #> v
+    Kd=0, Kp=0, Vm=0, Pr=15, Pm=0, T=0
+
+Now, increase p until there is motion:
+
+   #> p 100
+   #> v
+   Kd=0, Kp=100, Vm=0, Pr=15, Pm=0, T=15 (no motion)
+   #> p 200
+   #> v
+   Kd=0, Kp=100, Vm=0, Pr=15, Pm=0, T=15 (moved to position 11)
+   #> p 150
+   #> r+ 15 (target position 36)
+   #> v
+   Kd=0, Kp=150, Vm=0, Pr=22, Pm=22, T=0 (moved to position 22)
+
+Here, we are seeing that with Kp ~= 150, Kd = 0, we are getting motion,
+but not enough to make it close to our desired reference position.  With
+150, we make it 354 degreees toward a 360 degree rotation.  Note that the
+torque here maxes out at 135 (of 255) and at 354 is driving at torque 9
+but not making any progress toward its goal.
+
+    #> p 150
+    #> d 0
+    #> l
+    #> r+ 360
+    0,0,0
+    0,360,0
+    5,360,135
+    16,360,135
+    28,360,135
+    50,360,135
+    61,360,135
+    84,360,135
+    95,360,135
+    112,360,135
+    129,360,135
+    140,360,135
+    163,360,135
+    174,360,135
+    185,360,135
+    208,360,135
+    219,360,135
+    241,360,135
+    253,360,135
+    270,360,135
+    286,360,118
+    298,360,102
+    309,360,76
+    320,360,60
+    331,360,51
+    331,360,43
+    343,360,34
+    343,360,25
+    343,360,25
+    343,360,25
+    348,360,18
+    354,360,9
+    354,360,9
+    354,360,9
 
 ### Part 2: Step Size Modifications
 
@@ -176,6 +293,138 @@ Lab Report
 > controller for that very large step size. What happens if you then
 > set the reference position to be very close to the current
 > position (within a few degrees)?
+
+The step size was modified from the default (90 degrees) to be
+much larger (720 degrees).  Here's the initial results of that
+experiment.  The constant for this is MAX_DELTA in interpolator.c
+
+    0,1440,0
+    0,1440,255
+    22,1440,255
+    45,1440,255
+    78,1440,255
+    101,1440,255
+    123,1440,255
+    146,1440,255
+    180,1440,255
+    202,1440,255
+    230,1440,255
+    258,1440,255
+    281,1440,255
+    309,1440,255
+    337,1440,255
+    360,1440,255
+    393,1440,255
+    416,1440,255
+    438,1440,255
+    466,1440,255
+    495,1440,255
+    517,1440,255
+    551,1440,255
+    573,1440,255
+    601,1440,255
+    630,1440,255
+    652,1440,255
+    675,1440,255
+    708,1440,255
+    731,1440,255
+    759,1440,255
+    787,1440,255
+    810,1440,255
+    832,1440,255
+    866,1440,255
+    888,1440,255
+    911,1440,255
+    933,1440,255
+    967,1440,255
+    990,1440,255
+    1023,1440,255
+    1046,1440,255
+    1068,1440,255
+    1091,1440,255
+    1125,1440,255
+    1147,1440,255
+    1170,1440,255
+    1198,1440,255
+    1226,1440,255
+    1248,1440,255
+    1282,1440,255
+    1305,1440,255
+    1327,1440,255
+    1355,1440,255
+    1383,1440,209
+    1406,1440,96
+    1428,1440,63
+    1434,1440,27
+    1440,1440,-3
+    1440,1440,-3
+    1440,1440,0
+
+At 90 degrees, this was the result for the same test:
+
+    #> l
+    #> r+ 1440
+    0,1440,0
+    5,1440,255
+    22,1440,255
+    56,1440,255
+    78,1440,255
+    101,1440,255
+    123,1440,255
+    157,1440,255
+    180,1440,255
+    208,1440,255
+    230,1440,255
+    258,1440,255
+    281,1440,255
+    315,1440,255
+    337,1440,255
+    365,1440,255
+    393,1440,255
+    416,1440,255
+    438,1440,255
+    472,1440,255
+    495,1440,255
+    517,1440,255
+    545,1440,255
+    573,1440,255
+    596,1440,255
+    630,1440,255
+    652,1440,255
+    680,1440,255
+    708,1440,255
+    731,1440,255
+    753,1440,255
+    776,1440,255
+    810,1440,255
+    832,1440,255
+    855,1440,255
+    888,1440,255
+    911,1440,255
+    939,1440,255
+    961,1440,255
+    990,1440,255
+    1012,1440,255
+    1046,1440,255
+    1068,1440,255
+    1096,1440,255
+    1119,1440,255
+    1147,1440,255
+    1170,1440,255
+    1203,1440,255
+    1226,1440,255
+    1248,1440,255
+    1271,1440,255
+    1305,1440,255
+    1327,1440,255
+    1355,1440,255
+    1383,1440,203
+    1406,1440,134
+    1423,1440,63
+    1434,1440,30
+    1440,1440,-5
+    1440,1440,-3
+    1440,1440,0
 
 ### Part 3: Graphing of Pm, Pr, and T
 

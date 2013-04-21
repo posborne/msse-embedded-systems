@@ -18,6 +18,7 @@ static Deque d = &deque;
 static write_buffer_t write_buffers[DEQUE_MAX_NODES];
 static bool in_flight = false;
 static bool starting = true;
+static char SEND_BUFFER[256];
 
 static write_buffer_t *
 alloc_buffer(void)
@@ -45,6 +46,7 @@ void log_init() {
   int i;
   g_serial_state.bytes_buffered = 0;
   deque_init(d, NULL);
+//  serial_set_baud_rate(USB_COMM, 115200);
   for (i = 0; i < DEQUE_MAX_NODES; i++)
     write_buffers[i].in_use = false;
 }
@@ -75,20 +77,19 @@ void log_service(void) {
 void log_message(log_level_e lvl, char *fmt, ...) {
 	int msg_len;
 	write_buffer_t * buf;
-	char tmpbuf[LOG_BUFFER_SIZE];
 	va_list args;
 	va_start(args, fmt);
-	vsprintf(tmpbuf, fmt, args);
-	msg_len = strlen(tmpbuf);
+	vsprintf(SEND_BUFFER, fmt, args);
+	msg_len = strlen(SEND_BUFFER);
 	va_end(args);
 	if (starting) {
 		buf = alloc_buffer();
 		if (buf != NULL) { // if NULL, just drop
-			strncpy(buf->buf, tmpbuf, msg_len);
+			strncpy(buf->buf, SEND_BUFFER, msg_len);
 			buf->length = msg_len;
 			deque_append(d, buf);
 		}
 	} else {
-		serial_send_blocking(USB_COMM, tmpbuf, msg_len);
+		serial_send_blocking(USB_COMM, SEND_BUFFER, msg_len);
 	}
 }

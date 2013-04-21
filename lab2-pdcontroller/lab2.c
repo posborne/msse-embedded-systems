@@ -113,6 +113,8 @@ int main()
 	interpolator_init(&g_timers_state);
     sei();
 
+    log_start();
+
 	/* Main Loop: Run Tasks scheduled by scheduler */
 	while (1) {
 		serial_check(); /* needs to be called frequently */

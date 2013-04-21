@@ -11,7 +11,8 @@
 #define NUMBER_TRANSTIONS_REVOLUTION (NUMBER_DARK_REGIONS * 2)
 #define ENDZONE_MS                   (1000)
 #define MAX_DELTA                    (90)
-#define CLOSE_ENOUGH_DEGREES         (15)
+//#define MAX_DELTA                    (720)
+#define CLOSE_ENOUGH_DEGREES         (5)
 
 typedef enum {
     STATE_IN_ENDZONE,
@@ -67,20 +68,20 @@ q_get_tail(void)
     return node;
 }
 
-static int
-q_count(void)
-{
-    interpolator_target_node_t * node = q_head;
-    if (q_head == NULL) {
-        return 0;
-    } else {
-        int i = 1;
-        while ((node = node->next) != NULL) {
-            i++;
-        }
-        return i;
-    }
-}
+//static int
+//q_count(void)
+//{
+//    interpolator_target_node_t * node = q_head;
+//    if (q_head == NULL) {
+//        return 0;
+//    } else {
+//        int i = 1;
+//        while ((node = node->next) != NULL) {
+//            i++;
+//        }
+//        return i;
+//    }
+//}
 
 static void
 q_append(int32_t position)
@@ -94,8 +95,6 @@ q_append(int32_t position)
     } else {
         tail->next = node;
     }
-
-    LOG("q_append(%ld) -> count: %d\r\n", position, q_count());
 }
 
 static interpolator_target_node_t *
@@ -107,8 +106,6 @@ q_dequeue(void)
         orig_head->in_use = false;
         orig_head->next = NULL;
     }
-
-    LOG("q_dequeue() -> count: %d\r\n", q_count());
 
     return orig_head;
 }
@@ -162,7 +159,6 @@ interpolator_service(void)
 	    case STATE_OUT_OF_ENDZONE:
 	        delta = abs(interpolator_get_absolute_target_position() - interpolator_get_current_position());
 	        if (delta < CLOSE_ENOUGH_DEGREES) {
-	            LOG("STATE_OUT_OF_ENDZONE -> STATE_IN_ENDZONE\r\n");
 	            time_entered_end_zone = g_timers_state->ms_ticks;
 	            state = STATE_IN_ENDZONE;
 	        }
@@ -171,7 +167,6 @@ interpolator_service(void)
 	        timedelta = g_timers_state->ms_ticks - time_entered_end_zone;
 //            LOG("%u, %u, %u\r\n", g_timers_state->ms_ticks, time_entered_end_zone, timedelta);
 	        if (timedelta > ENDZONE_MS) {
-                LOG("STATE_IN_ENDZONE -> STATE_OUT_OF_ENDZONE\r\n");
                 state = STATE_OUT_OF_ENDZONE;
                 q_dequeue();
             }

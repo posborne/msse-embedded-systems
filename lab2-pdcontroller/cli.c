@@ -52,7 +52,7 @@ static int clicmd_show_commands(char const * const command)
 
     UNUSED_PARAMETER(command);
 
-    LOG("Available Commands:\r\n");
+    LOG("Available Commands (%d):\r\n", cli_commands.number_commands);
     for (i = 0; i < cli_commands.number_commands; i++) {
         cli_command_t cmd = cli_commands.commands[i];
         LOG("%-5s| %s\r\n", cmd.command, cmd.description);

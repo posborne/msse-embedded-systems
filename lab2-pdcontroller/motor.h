@@ -14,9 +14,9 @@ typedef struct {
     /* The last torque value used to drive the motor */
     uint8_t current_torque;
     /* Kp - The 'P' in PD (0.01/bit) */
-    int16_t proportional_gain;
+    int32_t proportional_gain;
     /* Kp - The 'P' in PD (0.01/bit) */
-    int16_t derivative_gain;
+    int32_t derivative_gain;
     /* last torque value */
     int last_torque;
     /* logging enabled/disabled */

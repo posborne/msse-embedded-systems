@@ -13,7 +13,7 @@
  * CONSTANTS
  */
 #define MAX_TORQUE         (255)
-#define COEFFICIENT_SCALAR (1000)
+#define COEFFICIENT_SCALAR (100)
 
 /* MACROS */
 #define MIN(a, b)     (a < b ? a : b)
@@ -27,8 +27,8 @@ void motor_service_pd_controller(void);
 static timers_state_t * g_timers_state;
 static motor_state_t g_motor_state = {
     .current_torque = 0,
-    .proportional_gain = (3 * COEFFICIENT_SCALAR),
-    .derivative_gain = (1 * COEFFICIENT_SCALAR),
+    .proportional_gain = 324,
+    .derivative_gain = 50,
     .last_torque = 0,
     .logging_enabled = false,
     .poll_rate = SERVICE_RATE_50HZ
@@ -86,7 +86,7 @@ static int clicmd_toggle_logging(char const * const args)
 static int clicmd_view_parameters(char const * const args)
 {
     (void)(args);
-    LOG("Kd=%d, Kp=%d, ",
+    LOG("Kd=%ld, Kp=%ld, ",
             g_motor_state.derivative_gain,
             g_motor_state.proportional_gain);
     LOG("Vm=%ld, Pr=%ld, Pm=%ld, T=%d\r\n",
@@ -105,30 +105,7 @@ static int clicmd_set_kp(char const * const args)
     int32_t kp;
     if (1 == sscanf(args, "%ld", &kp)) {
         g_motor_state.proportional_gain = kp;
-    }
-    return 0;
-}
-
-/*
- * Usage: p+ <int:Kp delta>
- */
-static int clicmd_increase_kp(char const * const args)
-{
-    int32_t kp_delta;
-    if (1 == sscanf(args, "%ld", &kp_delta)) {
-        g_motor_state.proportional_gain += kp_delta;
-    }
-    return 0;
-}
-
-/*
- * Usage: p- <int:Kp delta>
- */
-static int clicmd_decrease_kp(char const * const args)
-{
-    int32_t kp_delta;
-    if (1 == sscanf(args, "%ld", &kp_delta)) {
-        g_motor_state.proportional_gain -= kp_delta;
+        LOG("Kp is now: %ld\r\n", kp);
     }
     return 0;
 }
@@ -141,30 +118,7 @@ static int clicmd_set_kd(char const * const args)
     int32_t kd;
     if (1 == sscanf(args, "%ld", &kd)) {
         g_motor_state.derivative_gain = kd;
-    }
-    return 0;
-}
-
-/*
- * Usage: d+ <int:Kd delta>
- */
-static int clicmd_increase_kd(char const * const args)
-{
-    int32_t kd_delta;
-    if (1 == sscanf(args, "%ld", &kd_delta)) {
-        g_motor_state.derivative_gain += kd_delta;
-    }
-    return 0;
-}
-
-/*
- * Usage: d- <int:Kd delta>
- */
-static int clicmd_decrease_kd(char const * const args)
-{
-    int32_t kd_delta;
-    if (1 == sscanf(args, "%ld", &kd_delta)) {
-        g_motor_state.derivative_gain -= kd_delta;
+        LOG("Kd is now: %ld\r\n", kd);
     }
     return 0;
 }
@@ -271,16 +225,8 @@ void motor_init(timers_state_t * timers_state)
          clicmd_decrease_reference},
         {"p", "p <degrees>: Set Kp to the specified value",
          clicmd_set_kp},
-        {"p+", "p+ <degrees>: Increase Kp by the specified amount",
-         clicmd_increase_kp},
-        {"p-", "p- <degrees>: Decrease Kp by the specified amount",
-         clicmd_decrease_kp},
         {"d", "d <degrees>: Set Kd to the specified value",
          clicmd_set_kd},
-        {"d+", "d+ <degrees>: Increase Kd by the specified amount",
-         clicmd_increase_kd},
-        {"d-", "d- <degrees>: Decrease Kd by the specified amount",
-         clicmd_decrease_kd}
     );
 }
 
