@@ -40,4 +40,4 @@ program: $(TARGET).hex
 
 .PHONY: release
 release:
-	tar -czvf seng5831-embedded-lab2-`date +%m_%d_%y`.tar.gz Makefile *.txt *.c *.h
+	tar -czvf seng5831-embedded-lab2-`date +%m_%d_%y`.tar.gz Makefile *.c *.h *.md assets/*
